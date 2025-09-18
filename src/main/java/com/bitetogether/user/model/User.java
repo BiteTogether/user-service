@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Data
@@ -19,7 +21,7 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 public class User extends BaseEntity {
   @Id
-  @GeneratedValue(generator = "uuid2")
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "id", updatable = false, nullable = false)
   Long id;
 
@@ -41,8 +43,10 @@ public class User extends BaseEntity {
   @Column(name = "avatar")
   String avatar;
 
-  @Column(name = "food_preferences", columnDefinition = "jsonb")
-  String foodPreferences;
+  @Column(name = "food_preferences")
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Builder.Default
+  String foodPreferences = "{}";
 
   @Column(name = "role", nullable = false)
   UserRole role;

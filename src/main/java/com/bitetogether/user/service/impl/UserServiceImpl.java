@@ -4,6 +4,7 @@ import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
+import com.bitetogether.common.enums.UserRole;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.ErrorCode;
 import com.bitetogether.user.convert.UserMapper;
@@ -16,6 +17,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
   UserRepository userRepository;
   UserMapper userMapper;
+  PasswordEncoder passwordEncoder;
 
   @Override
   @Transactional
@@ -32,6 +35,10 @@ public class UserServiceImpl implements UserService {
     validateCreateUserRequest(createUserRequest);
 
     User newUser = userMapper.toEntity(createUserRequest);
+
+    handlePassword(newUser);
+    handleRole(newUser);
+
     User databaseUser = userRepository.save(newUser);
 
     return buildApiResponse(
@@ -44,6 +51,17 @@ public class UserServiceImpl implements UserService {
     }
     if (userRepository.existsByUsername(createUserRequest.getUsername())) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
+    }
+  }
+
+  private void handlePassword(User newUser) {
+    String encodedPassword = passwordEncoder.encode(newUser.getPassword());
+    newUser.setPassword(encodedPassword);
+  }
+
+  private void handleRole(User newUser) {
+    if (newUser.getRole() == null) {
+      newUser.setRole(UserRole.valueOf("USER"));
     }
   }
 }
