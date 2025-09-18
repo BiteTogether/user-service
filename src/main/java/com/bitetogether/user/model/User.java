@@ -33,7 +33,10 @@ public class User extends BaseEntity {
   String password;
 
   @Column(name = "fullname")
-  String fullname;
+  String fullName;
+
+  @Column(name = "phone", unique = true, nullable = false)
+  String phoneNumber;
 
   @Column(name = "avatar")
   String avatar;

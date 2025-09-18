@@ -1,6 +1,6 @@
 package com.bitetogether.user.service.impl;
 
-import static com.bitetogether.common.util.ApiResponseUtil.buildResponse;
+import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
@@ -21,6 +21,6 @@ public class AuthServiceImpl implements AuthService {
   @Override
   public ApiResponse<String> login(LoginRequest loginRequest) {
     // TODO: Implement actual login logic
-    return buildResponse(ApiResponseStatus.SUCCESS, "Login successful", null);
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "Login successful", null);
   }
 }

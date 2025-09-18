@@ -1,6 +1,5 @@
 package com.bitetogether.user.dto.auth.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
@@ -11,7 +10,6 @@ import lombok.*;
 @AllArgsConstructor
 public class LoginRequest {
   @NotBlank(message = "Username can not be empty")
-  @Email(message = "Email format is invalid")
   String email;
 
   @Pattern(
