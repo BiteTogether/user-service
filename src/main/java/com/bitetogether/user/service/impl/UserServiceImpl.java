@@ -29,15 +29,21 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public ApiResponse<Long> createUser(CreateUserRequest createUserRequest) {
+    validateCreateUserRequest(createUserRequest);
+
+    User newUser = userMapper.toEntity(createUserRequest);
+    User databaseUser = userRepository.save(newUser);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS, "User created successfully", databaseUser.getId());
+  }
+
+  private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
     if (userRepository.existsByEmail(createUserRequest.getEmail())) {
       throw new AppException(ErrorCode.EMAIL_EXISTED);
     }
     if (userRepository.existsByUsername(createUserRequest.getUsername())) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
     }
-    User newUser = userMapper.toEntity(createUserRequest);
-    User databaseUser = userRepository.save(newUser);
-    return buildApiResponse(
-        ApiResponseStatus.SUCCESS, "User created successfully", databaseUser.getId());
   }
 }
