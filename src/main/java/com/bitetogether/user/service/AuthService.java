@@ -1,5 +1,8 @@
 package com.bitetogether.user.service;
 
-import org.springframework.stereotype.Service;
+import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.user.dto.auth.request.LoginRequest;
 
-public interface AuthService {}
+public interface AuthService {
+    ApiResponse<String> login(LoginRequest loginRequest);
+}

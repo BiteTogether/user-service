@@ -1,15 +1,21 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    username: myuser
-    password: mypassword
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+  profiles:
+    include:
+        - database
+        - keycloak
+        - security
+        - jwt
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
+
+# Logging configuration for detailed request tracking
+logging:
+  level:
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter: DEBUG
+    org.springframework.web.servlet.handler: DEBUG
+    org.springframework.web.filter: DEBUG
+    com.bitetogether.user: DEBUG

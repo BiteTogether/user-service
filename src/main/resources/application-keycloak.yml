@@ -1,0 +1,7 @@
+keycloak:
+  domain: ${KEYCLOAK_DOMAIN}
+  realm: ${KEYCLOAK_REALM}
+  clientId: ${KEYCLOAK_CLIENT_ID}
+  clientSecret: ${KEYCLOAK_CLIENT_SECRET}
+  urls:
+    auth: ${KEYCLOAK_URLS_AUTH}
