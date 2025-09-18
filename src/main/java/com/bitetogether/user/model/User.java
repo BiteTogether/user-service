@@ -18,29 +18,29 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(callSuper = true)
 public class User extends BaseEntity {
-    @Id
-    @GeneratedValue(generator = "uuid2")
-    @Column(name = "id", updatable = false, nullable = false)
-    Long id;
+  @Id
+  @GeneratedValue(generator = "uuid2")
+  @Column(name = "id", updatable = false, nullable = false)
+  Long id;
 
-    @Column(name = "username", unique = true, nullable = false)
-    String username;
+  @Column(name = "username", unique = true, nullable = false)
+  String username;
 
-    @Column(name = "email", unique = true, nullable = false)
-    String email;
+  @Column(name = "email", unique = true, nullable = false)
+  String email;
 
-    @Column(name = "password", nullable = false)
-    String password;
+  @Column(name = "password", nullable = false)
+  String password;
 
-    @Column(name = "fullname")
-    String fullname;
+  @Column(name = "fullname")
+  String fullname;
 
-    @Column(name = "avatar")
-    String avatar;
+  @Column(name = "avatar")
+  String avatar;
 
-    @Column(name = "food_preferences", columnDefinition = "jsonb")
-    String foodPreferences;
+  @Column(name = "food_preferences", columnDefinition = "jsonb")
+  String foodPreferences;
 
-    @Column(name = "role", nullable = false)
-    UserRole role;
+  @Column(name = "role", nullable = false)
+  UserRole role;
 }

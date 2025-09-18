@@ -10,13 +10,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginRequest {
-    @NotBlank(message = "Username can not be empty")
-    @Email(message = "Email format is invalid")
-    String email;
+  @NotBlank(message = "Username can not be empty")
+  @Email(message = "Email format is invalid")
+  String email;
 
-    @Pattern(
-            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,}$",
-            message = "Password must be at least 8 characters, include letters and numbers"
-    )
-    String password;
+  @Pattern(
+      regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,}$",
+      message = "Password must be at least 8 characters, include letters and numbers")
+  String password;
 }

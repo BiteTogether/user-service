@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "app.security")
 public class SecurityProperties {
-    private List<String> permitPaths;
-    private List<String> allowedOrigins;
-    private List<String> allowedMethods;
-    private List<String> allowedHeaders;
-    private boolean allowCredentials;
+  private List<String> permitPaths;
+  private List<String> allowedOrigins;
+  private List<String> allowedMethods;
+  private List<String> allowedHeaders;
+  private boolean allowCredentials;
 }

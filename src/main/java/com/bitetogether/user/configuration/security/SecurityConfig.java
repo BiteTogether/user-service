@@ -22,39 +22,41 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final SecurityProperties security;
-    private final JwtDecoder jwtDecoder;
-    private final Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter;
+  private final SecurityProperties security;
+  private final JwtDecoder jwtDecoder;
+  private final Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(security.getPermitPaths().toArray(new String[0])).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .decoder(jwtDecoder)
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter)
-                        )
-                )
-                .build();
-    }
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http.csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(security.getPermitPaths().toArray(new String[0]))
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .oauth2ResourceServer(
+            oauth2 ->
+                oauth2.jwt(
+                    jwt ->
+                        jwt.decoder(jwtDecoder)
+                            .jwtAuthenticationConverter(jwtAuthenticationConverter)))
+        .build();
+  }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(security.getAllowedOrigins());
-        configuration.setAllowedHeaders(security.getAllowedHeaders());
-        configuration.setAllowedMethods(security.getAllowedMethods());
-        configuration.setAllowCredentials(security.isAllowCredentials());
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(security.getAllowedOrigins());
+    configuration.setAllowedHeaders(security.getAllowedHeaders());
+    configuration.setAllowedMethods(security.getAllowedMethods());
+    configuration.setAllowCredentials(security.isAllowCredentials());
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
 }
