@@ -3,6 +3,8 @@ package com.bitetogether.user.model;
 import com.bitetogether.common.enums.UserRole;
 import com.bitetogether.common.model.BaseEntity;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +27,7 @@ public class User extends BaseEntity {
   @Column(name = "id", updatable = false, nullable = false)
   Long id;
 
-  @Column(name = "username", unique = true, nullable = false)
+  @Column(name = "username", nullable = false)
   String username;
 
   @Column(name = "email", unique = true, nullable = false)
@@ -50,4 +52,12 @@ public class User extends BaseEntity {
 
   @Column(name = "role", nullable = false)
   UserRole role;
+
+  @ManyToMany
+  @JoinTable(
+      name = "user_friends",
+      joinColumns = @JoinColumn(name = "user_id"),
+      inverseJoinColumns = @JoinColumn(name = "friend_id"))
+  @Builder.Default
+  List<User> friendList = new ArrayList<>();
 }

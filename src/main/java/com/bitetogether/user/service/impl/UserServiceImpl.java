@@ -49,8 +49,8 @@ public class UserServiceImpl implements UserService {
     if (userRepository.existsByEmail(createUserRequest.getEmail())) {
       throw new AppException(ErrorCode.EMAIL_EXISTED);
     }
-    if (userRepository.existsByUsername(createUserRequest.getUsername())) {
-      throw new AppException(ErrorCode.USERNAME_EXISTED);
+    if (userRepository.existsByPhoneNumber(createUserRequest.getPhoneNumber())) {
+      throw new AppException(ErrorCode.PHONE_EXISTED);
     }
   }
 
