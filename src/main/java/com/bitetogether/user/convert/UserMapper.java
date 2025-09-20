@@ -1,10 +1,20 @@
 package com.bitetogether.user.convert;
 
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.model.User;
 import org.mapstruct.Mapper;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring")
+@Mapper(
+    componentModel = "spring",
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
-  public User toEntity(CreateUserRequest createUserRequest);
+  User toEntity(CreateUserRequest createUserRequest);
+
+  UserResponse toResponse(User user);
+
+  void updateUserFromRequest(UpdateUserRequest updateUserRequest, @MappingTarget User user);
 }

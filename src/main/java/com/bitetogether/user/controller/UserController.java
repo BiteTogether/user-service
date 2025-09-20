@@ -1,26 +1,73 @@
 package com.bitetogether.user.controller;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
+import static com.bitetogether.common.util.Constants.HAS_ROLE_ADMIN;
+import static com.bitetogether.common.util.Constants.HAS_ROLE_ADMIN_OR_USER;
+import static com.bitetogether.common.util.Constants.HAS_ROLE_USER;
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_USER;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/users")
+@RequestMapping(PREFIX_REQUEST_MAPPING_USER)
+@Slf4j
 public class UserController {
   private final UserService userService;
 
+  @PreAuthorize(HAS_ROLE_ADMIN)
   @PostMapping
   public ResponseEntity<ApiResponse<Long>> createUser(
       @RequestBody CreateUserRequest createUserRequest) {
+    logAuthenticationDetails("CREATE USER");
     return buildEntityResponse(userService.createUser(createUserRequest));
+  }
+
+  @PreAuthorize(HAS_ROLE_ADMIN_OR_USER)
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+      @PathVariable Long id, @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+    logAuthenticationDetails("UPDATE USER");
+    return buildEntityResponse(userService.updateUser(id, updateUserRequest));
+  }
+
+  @PreAuthorize(HAS_ROLE_ADMIN_OR_USER)
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable Long id) {
+    logAuthenticationDetails("DELETE USER");
+    return buildEntityResponse(userService.deleteUser(id));
+  }
+
+  private void logAuthenticationDetails(String operation) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    log.info("=== AUTHENTICATION DEBUG FOR {} ===", operation);
+    log.info("Authentication: {}", auth);
+    if (auth != null) {
+      log.info("Principal: {}", auth.getPrincipal());
+      log.info("Authorities: {}", auth.getAuthorities());
+      log.info("Is Authenticated: {}", auth.isAuthenticated());
+      log.info("Name: {}", auth.getName());
+    } else {
+      log.info("NO AUTHENTICATION FOUND");
+    }
+    log.info("=== END AUTHENTICATION DEBUG ===");
   }
 }

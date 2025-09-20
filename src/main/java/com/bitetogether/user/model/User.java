@@ -1,6 +1,5 @@
 package com.bitetogether.user.model;
 
-import com.bitetogether.common.enums.UserRole;
 import com.bitetogether.common.model.BaseEntity;
 import jakarta.persistence.*;
 import java.util.ArrayList;
@@ -51,7 +50,7 @@ public class User extends BaseEntity {
   String foodPreferences = "{}";
 
   @Column(name = "role", nullable = false)
-  UserRole role;
+  String role;
 
   @ManyToMany
   @JoinTable(
