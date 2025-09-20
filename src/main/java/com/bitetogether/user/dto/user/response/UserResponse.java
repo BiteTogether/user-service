@@ -13,6 +13,5 @@ public class UserResponse {
   private String fullName;
   private String phoneNumber;
   private String avatar;
-  private String foodPreferences;
   private Role role;
 }

@@ -11,4 +11,8 @@ public interface UserService {
   ApiResponse<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest);
 
   ApiResponse<String> deleteUser(Long id);
+
+  ApiResponse<UserResponse> getCurrentUser();
+
+  ApiResponse<UserResponse> getUserById(Long id);
 }

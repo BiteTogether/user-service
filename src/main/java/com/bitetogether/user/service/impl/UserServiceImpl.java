@@ -79,6 +79,34 @@ public class UserServiceImpl implements UserService {
         ApiResponseStatus.SUCCESS, "User with id " + id + " has been deleted successfully", null);
   }
 
+  @Override
+  public ApiResponse<UserResponse> getCurrentUser() {
+    Long currentUserId = getCurrentUserId();
+
+    User currentUser = findUserById(currentUserId);
+
+    UserResponse userResponse = userMapper.toResponse(currentUser);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        "Your account's information has been fetched successfully",
+        userResponse);
+  }
+
+  @Override
+  public ApiResponse<UserResponse> getUserById(Long id) {
+    validateGetUserByIdRequest(id);
+
+    User user = findUserById(id);
+
+    UserResponse userResponse = userMapper.toResponse(user);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        "User's information has been fetched successfully",
+        userResponse);
+  }
+
   private User findUserById(Long id) {
     return userRepository
         .findById(id)
@@ -99,6 +127,19 @@ public class UserServiceImpl implements UserService {
         && !updateUserRequest.getUsername().equals(existingUser.getUsername())
         && userRepository.existsByUsername(updateUserRequest.getUsername())) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
+    }
+  }
+
+  private void validateGetUserByIdRequest(Long id) {
+    if (hasRole(Role.USER.name())) {
+      Long currentUserId = getCurrentUserId();
+      if (currentUserId.equals(id)) {
+        return;
+      }
+      User currentUser = findUserById(currentUserId);
+      if (currentUser.getFriendList().stream().noneMatch(friend -> friend.getId().equals(id))) {
+        throw new AppException(ErrorCode.USER_FORBIDDEN);
+      }
     }
   }
 
