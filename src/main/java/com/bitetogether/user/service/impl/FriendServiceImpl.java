@@ -1,0 +1,78 @@
+package com.bitetogether.user.service.impl;
+
+import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.enums.ApiResponseStatus;
+import com.bitetogether.common.enums.Role;
+import com.bitetogether.common.exception.AppException;
+import com.bitetogether.common.exception.ErrorCode;
+import com.bitetogether.user.convert.UserMapper;
+import com.bitetogether.user.dto.friend.response.FriendResponse;
+import com.bitetogether.user.model.User;
+import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.FriendService;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
+import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
+import static com.bitetogether.common.util.SecurityUtils.hasRole;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class FriendServiceImpl implements FriendService {
+    UserRepository userRepository;
+    UserMapper userMapper;
+
+    @Override
+    public ApiResponse<List<FriendResponse>> getFriendsList() {
+        Long currentUserId = getCurrentUserId();
+
+        User currentUser = findUserById(currentUserId);
+        List<User> friends = currentUser.getFriendList();
+
+        List<FriendResponse> friendResponseList = friends.stream()
+                .map(userMapper::toFriendResponse)
+                .collect(Collectors.toList());
+
+        return buildApiResponse(
+                ApiResponseStatus.SUCCESS, "Friend list retrieved successfully", friendResponseList);
+    }
+
+    @Override
+    public ApiResponse<String> deleteFriend(Long id) {
+        User currentUser = validateDeleteFriendRequest(id);
+
+        User friendToRemove = findUserById(id);
+        currentUser.getFriendList().remove(friendToRemove);
+        userRepository.save(currentUser);
+
+        return buildApiResponse(
+                ApiResponseStatus.SUCCESS, "Friend removed successfully", null
+        );
+    }
+
+    private User findUserById(Long id) {
+        return userRepository
+                .findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private User validateDeleteFriendRequest(Long id) {
+        Long currentUserId = getCurrentUserId();
+        User currentUser = findUserById(currentUserId);
+        if (hasRole(Role.USER.name())) {
+            if (currentUser.getFriendList().stream().noneMatch(friend -> friend.getId().equals(id))) {
+                throw new AppException(ErrorCode.FRIEND_NOT_FOUND);
+            }
+        }
+        return currentUser;
+    }
+}
