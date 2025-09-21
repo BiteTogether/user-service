@@ -1,4 +1,4 @@
-package com.bitetogether.user.dto.user.response;
+package com.bitetogether.user.dto.auth.response;
 
 import com.bitetogether.common.enums.Role;
 import lombok.Builder;
@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Builder
 @Getter
-public class UserResponse {
+public class UserInfoResponse {
   private Long id;
   private String username;
   private String email;

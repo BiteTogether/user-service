@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
     userMapper.updateUserFromRequest(updateUserRequest, existingUser);
 
     User updatedUser = userRepository.save(existingUser);
-    UserResponse userResponse = userMapper.toResponse(updatedUser);
+    UserResponse userResponse = userMapper.toUserResponse(updatedUser);
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "User updated successfully", userResponse);
   }
@@ -85,7 +85,7 @@ public class UserServiceImpl implements UserService {
 
     User currentUser = findUserById(currentUserId);
 
-    UserResponse userResponse = userMapper.toResponse(currentUser);
+    UserResponse userResponse = userMapper.toUserResponse(currentUser);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
@@ -99,7 +99,7 @@ public class UserServiceImpl implements UserService {
 
     User user = findUserById(id);
 
-    UserResponse userResponse = userMapper.toResponse(user);
+    UserResponse userResponse = userMapper.toUserResponse(user);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,

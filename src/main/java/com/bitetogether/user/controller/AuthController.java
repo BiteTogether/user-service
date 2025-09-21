@@ -5,7 +5,9 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_AUTH
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.auth.request.LoginRequest;
-import com.bitetogether.user.dto.auth.response.LoginResponse;
+import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
+import com.bitetogether.user.dto.auth.response.TokenResponse;
+import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +21,20 @@ public class AuthController {
   private final AuthService authService;
 
   @PostMapping("/login")
-  public ResponseEntity<ApiResponse<LoginResponse>> login(
+  public ResponseEntity<ApiResponse<TokenResponse>> login(
       @Valid @RequestBody LoginRequest loginRequest) {
     return buildEntityResponse(authService.login(loginRequest));
+  }
+
+  @PostMapping("/refresh-token")
+  public ResponseEntity<ApiResponse<TokenResponse>> refreshToken(
+      @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+    return buildEntityResponse(authService.refreshToken(refreshTokenRequest));
+  }
+
+  @PostMapping()
+    public ResponseEntity<ApiResponse<Long>> register(
+          @Valid @RequestBody CreateUserRequest createUserRequest) {
+    return buildEntityResponse(authService.register(createUserRequest));
   }
 }

@@ -13,4 +13,10 @@ public interface JwtService {
   Date extractExpiration(String token);
 
   <T> T extractClaim(String token, Function<Claims, T> claimsResolver);
+
+  String extractEmail(String token);
+
+  boolean isTokenValid(String token);
+
+  boolean isTokenExpired(String token);
 }
