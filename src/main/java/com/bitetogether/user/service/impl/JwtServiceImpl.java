@@ -1,5 +1,10 @@
 package com.bitetogether.user.service.impl;
 
+import static com.bitetogether.common.util.Constants.CLAIM_EMAIL;
+import static com.bitetogether.common.util.Constants.CLAIM_ROLE;
+import static com.bitetogether.common.util.Constants.CLAIM_USER_ID;
+import static com.bitetogether.common.util.Constants.CLAIM_USER_NAME;
+
 import com.bitetogether.common.configuration.security.JwtProperties;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.service.JwtService;
@@ -25,18 +30,18 @@ public class JwtServiceImpl implements JwtService {
 
   public String generateToken(User user) {
     Map<String, Object> claims = new HashMap<>();
-    claims.put("userId", user.getId());
-    claims.put("email", user.getEmail());
-    claims.put("username", user.getUsername());
-    claims.put("role", user.getRole().name());
+    claims.put(CLAIM_USER_ID, user.getId());
+    claims.put(CLAIM_EMAIL, user.getEmail());
+    claims.put(CLAIM_USER_NAME, user.getUsername());
+    claims.put(CLAIM_ROLE, user.getRole());
 
     return createToken(claims, user.getEmail());
   }
 
   public String generateRefreshToken(User user) {
     Map<String, Object> claims = new HashMap<>();
-    claims.put("userId", user.getId());
-    claims.put("email", user.getEmail());
+    claims.put(CLAIM_USER_ID, user.getId());
+    claims.put(CLAIM_EMAIL, user.getEmail());
 
     return createRefreshToken(claims, user.getEmail());
   }
@@ -66,10 +71,6 @@ public class JwtServiceImpl implements JwtService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  public String extractUsername(String token) {
-    return extractClaim(token, Claims::getSubject);
-  }
-
   public Date extractExpiration(String token) {
     return extractClaim(token, Claims::getExpiration);
   }
@@ -81,14 +82,5 @@ public class JwtServiceImpl implements JwtService {
 
   private Claims extractAllClaims(String token) {
     return Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token).getBody();
-  }
-
-  private Boolean isTokenExpired(String token) {
-    return extractExpiration(token).before(new Date());
-  }
-
-  public Boolean validateToken(String token, String username) {
-    final String extractedUsername = extractUsername(token);
-    return (extractedUsername.equals(username) && !isTokenExpired(token));
   }
 }

@@ -39,7 +39,7 @@ public class SecurityConfig {
                 auth.requestMatchers(security.getPermitPaths().toArray(new String[0]))
                     .permitAll()
                     .anyRequest()
-                    .permitAll())
+                    .authenticated())
         .oauth2ResourceServer(
             oauth2 ->
                 oauth2.jwt(
