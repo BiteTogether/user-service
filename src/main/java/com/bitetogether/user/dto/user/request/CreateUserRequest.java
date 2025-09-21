@@ -4,8 +4,10 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class CreateUserRequest {
   @NotBlank(message = "Username can not be empty")
   String username;
@@ -26,4 +28,6 @@ public class CreateUserRequest {
   String phoneNumber;
 
   String avatar;
+
+  String role;
 }

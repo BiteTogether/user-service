@@ -83,4 +83,21 @@ public class JwtServiceImpl implements JwtService {
   private Claims extractAllClaims(String token) {
     return Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token).getBody();
   }
+
+  public String extractEmail(String token) {
+    return extractClaim(token, Claims::getSubject);
+  }
+
+  public boolean isTokenValid(String token) {
+    try {
+      return !isTokenExpired(token);
+    } catch (Exception e) {
+      log.error("Invalid token: {}", e.getMessage());
+      return false;
+    }
+  }
+
+  public boolean isTokenExpired(String token) {
+    return extractExpiration(token).before(new Date());
+  }
 }

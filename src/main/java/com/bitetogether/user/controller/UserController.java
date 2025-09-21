@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
   private final UserService userService;
 
-  @PreAuthorize(HAS_ROLE_ADMIN)
+    @PreAuthorize(HAS_ROLE_ADMIN)
   @PostMapping
   public ResponseEntity<ApiResponse<Long>> createUser(
       @RequestBody CreateUserRequest createUserRequest) {
