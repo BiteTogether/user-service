@@ -31,6 +31,5 @@ public class FriendRequest extends BaseEntity {
     public enum RequestStatus {
         PENDING,
         ACCEPTED,
-        REJECTED
     }
 }

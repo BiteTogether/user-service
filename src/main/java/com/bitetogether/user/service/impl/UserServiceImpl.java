@@ -114,41 +114,58 @@ public class UserServiceImpl implements UserService {
   }
 
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
-    if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+    String email = createUserRequest.getEmail();
+    String phoneNumber = createUserRequest.getPhoneNumber();
+
+    if (email != null && userRepository.existsByEmail(email)) {
       throw new AppException(ErrorCode.EMAIL_EXISTED);
     }
-    if (userRepository.existsByPhoneNumber(createUserRequest.getPhoneNumber())) {
+
+    if (phoneNumber != null && userRepository.existsByPhoneNumber(phoneNumber)) {
       throw new AppException(ErrorCode.PHONE_EXISTED);
     }
   }
 
   private void validateUpdateUserRequest(UpdateUserRequest updateUserRequest, User existingUser) {
-    if (updateUserRequest.getUsername() != null
-        && !updateUserRequest.getUsername().equals(existingUser.getUsername())
-        && userRepository.existsByUsername(updateUserRequest.getUsername())) {
+    String newUsername = updateUserRequest.getUsername();
+
+    if (newUsername != null
+        && !newUsername.trim().isEmpty()
+        && !newUsername.equals(existingUser.getUsername())
+        && userRepository.existsByUsername(newUsername)) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
     }
   }
 
   private void validateGetUserByIdRequest(Long id) {
-    if (hasRole(Role.USER.name())) {
-      Long currentUserId = getCurrentUserId();
-      if (currentUserId.equals(id)) {
-        return;
-      }
-      User currentUser = findUserById(currentUserId);
-      if (currentUser.getFriendList().stream().noneMatch(friend -> friend.getId().equals(id))) {
-        throw new AppException(ErrorCode.USER_FORBIDDEN);
-      }
+    if (!hasRole(Role.USER.name())) {
+      return;
+    }
+
+    Long currentUserId = getCurrentUserId();
+
+    if (currentUserId.equals(id)) {
+      return;
+    }
+
+    User currentUser = findUserById(currentUserId);
+    boolean isFriend = currentUser.getFriendList().stream()
+        .anyMatch(friend -> friend.getId().equals(id));
+
+    if (!isFriend) {
+      throw new AppException(ErrorCode.USER_FORBIDDEN);
     }
   }
 
   private void validateUserAuthorization(Long id) {
-    if (hasRole(Role.USER.name())) {
-      Long currentUserId = getCurrentUserId();
-      if (!currentUserId.equals(id)) {
-        throw new AppException(ErrorCode.USER_FORBIDDEN);
-      }
+    if (!hasRole(Role.USER.name())) {
+      return;
+    }
+
+    Long currentUserId = getCurrentUserId();
+
+    if (!currentUserId.equals(id)) {
+      throw new AppException(ErrorCode.USER_FORBIDDEN);
     }
   }
 

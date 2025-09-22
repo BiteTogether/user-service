@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,12 +48,17 @@ public class FriendServiceImpl implements FriendService {
     }
 
     @Override
-    public ApiResponse<String> deleteFriend(Long id) {
-        User currentUser = validateDeleteFriendRequest(id);
+    @Transactional
+    public ApiResponse<String> deleteFriend(Long friendId) {
+        Long currentUserId = getCurrentUserId();
+        User currentUser = findUserById(currentUserId);
+        User friendToRemove = validateDeleteFriendRequest(friendId, currentUser);
 
-        User friendToRemove = findUserById(id);
         currentUser.getFriendList().remove(friendToRemove);
+        friendToRemove.getFriendList().remove(currentUser);
+
         userRepository.save(currentUser);
+        userRepository.save(friendToRemove);
 
         return buildApiResponse(
                 ApiResponseStatus.SUCCESS, "Friend removed successfully", null
@@ -65,14 +71,18 @@ public class FriendServiceImpl implements FriendService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private User validateDeleteFriendRequest(Long id) {
-        Long currentUserId = getCurrentUserId();
-        User currentUser = findUserById(currentUserId);
+    private User validateDeleteFriendRequest(Long friendId, User currentUser) {
+        User friendUser = findUserById(friendId);
+
         if (hasRole(Role.USER.name())) {
-            if (currentUser.getFriendList().stream().noneMatch(friend -> friend.getId().equals(id))) {
+            boolean areFriends = currentUser.getFriendList().stream()
+                    .anyMatch(friend -> friend.getId().equals(friendId));
+
+            if (!areFriends) {
                 throw new AppException(ErrorCode.FRIEND_NOT_FOUND);
             }
         }
-        return currentUser;
+
+        return friendUser;
     }
 }
