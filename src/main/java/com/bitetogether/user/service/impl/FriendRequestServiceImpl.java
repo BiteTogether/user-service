@@ -3,8 +3,9 @@ package com.bitetogether.user.service.impl;
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
-import com.bitetogether.common.exception.ErrorCode;
+import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
+import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
@@ -92,12 +93,13 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         );
     }
 
+    @Override
+    public Object getPendingFriendRequests() {
+        return null;
+    }
+
     private void deleteFriendRequestHelper(FriendRequest friendRequest) {
         friendRequestRepository.delete(friendRequest);
-        log.info("Friend request deleted: id={}, sender={}, receiver={}",
-                friendRequest.getId(),
-                friendRequest.getSender().getId(),
-                friendRequest.getReceiver().getId());
     }
 
     private void validateCreateFriendRequest(Long senderId, Long receiverId) {
@@ -125,7 +127,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
                 .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
         if (!friendRequest.getReceiver().getId().equals(getCurrentUserId())) {
-            throw new AppException(ErrorCode.USER_FORBIDDEN);
+            throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
         }
 
         return friendRequest;
@@ -137,7 +139,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
         if (!friendRequest.getSender().getId().equals(currentUserId) &&
                 !friendRequest.getReceiver().getId().equals(currentUserId)) {
-            throw new AppException(ErrorCode.USER_FORBIDDEN);
+            throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
         }
 
         return friendRequest;

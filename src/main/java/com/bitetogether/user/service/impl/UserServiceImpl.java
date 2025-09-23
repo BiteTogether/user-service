@@ -8,11 +8,12 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
-import com.bitetogether.common.exception.ErrorCode;
+import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.response.UserResponse;
+import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.UserService;
@@ -149,7 +150,7 @@ public class UserServiceImpl implements UserService {
         .anyMatch(friend -> friend.getId().equals(id));
 
     if (!isFriend) {
-      throw new AppException(ErrorCode.USER_FORBIDDEN);
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
   }
 
@@ -161,7 +162,7 @@ public class UserServiceImpl implements UserService {
     Long currentUserId = getCurrentUserId();
 
     if (!currentUserId.equals(id)) {
-      throw new AppException(ErrorCode.USER_FORBIDDEN);
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
   }
 

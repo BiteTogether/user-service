@@ -9,4 +9,6 @@ public interface FriendRequestService {
     ApiResponse<Void> acceptFriendRequest(Long id);
 
     ApiResponse<String> deleteFriendRequest(Long id);
+
+    Object getPendingFriendRequests();
 }

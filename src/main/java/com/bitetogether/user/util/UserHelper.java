@@ -1,7 +1,7 @@
 package com.bitetogether.user.util;
 
 import com.bitetogether.common.exception.AppException;
-import com.bitetogether.common.exception.ErrorCode;
+import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import lombok.AccessLevel;

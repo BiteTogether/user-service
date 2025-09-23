@@ -7,10 +7,10 @@ import lombok.*;
 @Entity
 @Table(name = "friend_requests")
 @Data
-@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 public class FriendRequest extends BaseEntity {
 
     @Id
