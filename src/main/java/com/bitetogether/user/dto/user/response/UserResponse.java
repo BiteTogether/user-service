@@ -13,5 +13,5 @@ public class UserResponse {
   private String fullName;
   private String phoneNumber;
   private String avatar;
-  private Role role;
+  private String role;
 }

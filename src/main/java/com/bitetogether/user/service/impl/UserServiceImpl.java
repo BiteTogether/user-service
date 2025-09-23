@@ -16,6 +16,7 @@ import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.UserService;
+import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -32,6 +33,7 @@ public class UserServiceImpl implements UserService {
   UserRepository userRepository;
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
+  UserHelper userHelper;
 
   @Override
   @Transactional
@@ -52,7 +54,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public ApiResponse<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest) {
-    User existingUser = findUserById(id);
+    User existingUser = userHelper.findUserById(id);
 
     validateUserAuthorization(id);
 
@@ -69,7 +71,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public ApiResponse<String> deleteUser(Long id) {
-    User existingUser = findUserById(id);
+    User existingUser = userHelper.findUserById(id);
 
     validateUserAuthorization(id);
 
@@ -83,7 +85,7 @@ public class UserServiceImpl implements UserService {
   public ApiResponse<UserResponse> getCurrentUser() {
     Long currentUserId = getCurrentUserId();
 
-    User currentUser = findUserById(currentUserId);
+    User currentUser = userHelper.findUserById(currentUserId);
 
     UserResponse userResponse = userMapper.toUserResponse(currentUser);
 
@@ -97,7 +99,7 @@ public class UserServiceImpl implements UserService {
   public ApiResponse<UserResponse> getUserById(Long id) {
     validateGetUserByIdRequest(id);
 
-    User user = findUserById(id);
+    User user = userHelper.findUserById(id);
 
     UserResponse userResponse = userMapper.toUserResponse(user);
 
@@ -105,12 +107,6 @@ public class UserServiceImpl implements UserService {
         ApiResponseStatus.SUCCESS,
         "User's information has been fetched successfully",
         userResponse);
-  }
-
-  private User findUserById(Long id) {
-    return userRepository
-        .findById(id)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
   }
 
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
@@ -148,7 +144,7 @@ public class UserServiceImpl implements UserService {
       return;
     }
 
-    User currentUser = findUserById(currentUserId);
+    User currentUser = userHelper.findUserById(currentUserId);
     boolean isFriend = currentUser.getFriendList().stream()
         .anyMatch(friend -> friend.getId().equals(id));
 

@@ -1,0 +1,45 @@
+package com.bitetogether.user.controller;
+
+import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
+import com.bitetogether.user.service.FriendRequestService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND_REQUEST;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping(PREFIX_REQUEST_MAPPING_FRIEND_REQUEST)
+public class FriendRequestController {
+    private final FriendRequestService friendRequestService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<Long>> createFriendRequest(
+            @Valid @RequestBody CreateFriendRequestRequest createFriendRequestRequest
+            ) {
+        return buildEntityResponse(friendRequestService.createFriendRequest(createFriendRequestRequest));
+    }
+
+    @PostMapping("/accept/{id}")
+    public ResponseEntity<ApiResponse<Void>> acceptFriendRequest(
+            @PathVariable Long id
+    ) {
+        return buildEntityResponse(friendRequestService.acceptFriendRequest(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteFriendRequest(
+            @PathVariable Long id
+    ) {
+        return buildEntityResponse(friendRequestService.deleteFriendRequest(id));
+    }
+}

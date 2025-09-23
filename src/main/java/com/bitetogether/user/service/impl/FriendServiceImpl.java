@@ -10,6 +10,7 @@ import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.FriendService;
+import com.bitetogether.user.util.UserHelper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,12 +32,13 @@ import static com.bitetogether.common.util.SecurityUtils.hasRole;
 public class FriendServiceImpl implements FriendService {
     UserRepository userRepository;
     UserMapper userMapper;
+    UserHelper userHelper;
 
     @Override
     public ApiResponse<List<FriendResponse>> getFriendsList() {
         Long currentUserId = getCurrentUserId();
 
-        User currentUser = findUserById(currentUserId);
+        User currentUser = userHelper.findUserById(currentUserId);
         List<User> friends = currentUser.getFriendList();
 
         List<FriendResponse> friendResponseList = friends.stream()
@@ -51,7 +53,7 @@ public class FriendServiceImpl implements FriendService {
     @Transactional
     public ApiResponse<String> deleteFriend(Long friendId) {
         Long currentUserId = getCurrentUserId();
-        User currentUser = findUserById(currentUserId);
+        User currentUser = userHelper.findUserById(currentUserId);
         User friendToRemove = validateDeleteFriendRequest(friendId, currentUser);
 
         currentUser.getFriendList().remove(friendToRemove);
@@ -65,14 +67,8 @@ public class FriendServiceImpl implements FriendService {
         );
     }
 
-    private User findUserById(Long id) {
-        return userRepository
-                .findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    }
-
     private User validateDeleteFriendRequest(Long friendId, User currentUser) {
-        User friendUser = findUserById(friendId);
+        User friendUser = userHelper.findFriendById(friendId);
 
         if (hasRole(Role.USER.name())) {
             boolean areFriends = currentUser.getFriendList().stream()
