@@ -1,5 +1,8 @@
 package com.bitetogether.user.controller;
 
+import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND_REQUEST;
+
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.dto.PaginationRequest;
@@ -7,6 +10,7 @@ import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestReques
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.service.FriendRequestService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,49 +21,38 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
-import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
-import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND_REQUEST;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(PREFIX_REQUEST_MAPPING_FRIEND_REQUEST)
 public class FriendRequestController {
-    private final FriendRequestService friendRequestService;
+  private final FriendRequestService friendRequestService;
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<Long>> createFriendRequest(
-            @Valid @RequestBody CreateFriendRequestRequest createFriendRequestRequest
-            ) {
-        return buildEntityResponse(friendRequestService.createFriendRequest(createFriendRequestRequest));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<Long>> createFriendRequest(
+      @Valid @RequestBody CreateFriendRequestRequest createFriendRequestRequest) {
+    return buildEntityResponse(
+        friendRequestService.createFriendRequest(createFriendRequestRequest));
+  }
 
-    @PostMapping("/accept/{id}")
-    public ResponseEntity<ApiResponse<Void>> acceptFriendRequest(
-            @PathVariable Long id
-    ) {
-        return buildEntityResponse(friendRequestService.acceptFriendRequest(id));
-    }
+  @PostMapping("/accept/{id}")
+  public ResponseEntity<ApiResponse<Void>> acceptFriendRequest(@PathVariable Long id) {
+    return buildEntityResponse(friendRequestService.acceptFriendRequest(id));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> deleteFriendRequest(
-            @PathVariable Long id
-    ) {
-        return buildEntityResponse(friendRequestService.deleteFriendRequest(id));
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<String>> deleteFriendRequest(@PathVariable Long id) {
+    return buildEntityResponse(friendRequestService.deleteFriendRequest(id));
+  }
 
-    @GetMapping("/sent")
-    public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>> getSentFriendRequests(
-            @RequestBody PaginationRequest paginationRequest
-    ) {
-        return buildEntityResponse(friendRequestService.getSentFriendRequests(paginationRequest));
-    }
+  @GetMapping("/sent")
+  public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>> getSentFriendRequests(
+      @RequestBody PaginationRequest paginationRequest) {
+    return buildEntityResponse(friendRequestService.getSentFriendRequests(paginationRequest));
+  }
 
-    @GetMapping("/received")
-    public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>> getReceivedFriendRequests(
-            @RequestBody PaginationRequest paginationRequest
-    ) {
-        return buildEntityResponse(friendRequestService.getReceivedFriendRequests(paginationRequest));
-    }
+  @GetMapping("/received")
+  public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>>
+      getReceivedFriendRequests(@RequestBody PaginationRequest paginationRequest) {
+    return buildEntityResponse(friendRequestService.getReceivedFriendRequests(paginationRequest));
+  }
 }

@@ -12,5 +12,5 @@ public interface AuthService {
 
   ApiResponse<TokenResponse> refreshToken(RefreshTokenRequest refreshTokenRequest);
 
-    ApiResponse<Long> register(@Valid CreateUserRequest createUserRequest);
+  ApiResponse<Long> register(@Valid CreateUserRequest createUserRequest);
 }

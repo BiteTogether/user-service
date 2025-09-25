@@ -6,8 +6,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 @Mapper(
-        componentModel = "spring",
-        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    componentModel = "spring",
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface FriendRequestMapper {
-    FriendRequestResponse toFriendRequestResponse(User friend);
+  FriendRequestResponse toFriendRequestResponse(User friend);
 }
