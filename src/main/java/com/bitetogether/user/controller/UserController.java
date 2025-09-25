@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
   private final UserService userService;
 
-    @PreAuthorize(HAS_ROLE_ADMIN)
+  @PreAuthorize(HAS_ROLE_ADMIN)
   @PostMapping
   public ResponseEntity<ApiResponse<Long>> createUser(
       @RequestBody CreateUserRequest createUserRequest) {
@@ -57,5 +57,4 @@ public class UserController {
   public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
     return buildEntityResponse(userService.getUserById(id));
   }
-
 }

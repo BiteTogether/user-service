@@ -146,8 +146,8 @@ public class UserServiceImpl implements UserService {
     }
 
     User currentUser = userHelper.findUserById(currentUserId);
-    boolean isFriend = currentUser.getFriendList().stream()
-        .anyMatch(friend -> friend.getId().equals(id));
+    boolean isFriend =
+        currentUser.getFriendList().stream().anyMatch(friend -> friend.getId().equals(id));
 
     if (!isFriend) {
       throw new AppException(GlobalErrorCode.USER_FORBIDDEN);

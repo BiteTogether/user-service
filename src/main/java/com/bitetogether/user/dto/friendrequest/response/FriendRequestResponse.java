@@ -8,8 +8,8 @@ import lombok.Setter;
 @Setter
 @Builder
 public class FriendRequestResponse {
-    private Long id;
-    private String username;
-    private String fullName;
-    private String avatar;
+  private Long id;
+  private String username;
+  private String fullName;
+  private String avatar;
 }

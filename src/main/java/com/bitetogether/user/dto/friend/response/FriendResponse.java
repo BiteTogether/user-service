@@ -4,8 +4,8 @@ import lombok.Builder;
 
 @Builder
 public class FriendResponse {
-    Long id;
-    String username;
-    String fullName;
-    String avatar;
+  Long id;
+  String username;
+  String fullName;
+  String avatar;
 }

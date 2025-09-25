@@ -14,17 +14,17 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserHelper {
 
-    UserRepository userRepository;
+  UserRepository userRepository;
 
-    public User findUserById(Long id) {
-        return userRepository
-                .findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    }
+  public User findUserById(Long id) {
+    return userRepository
+        .findById(id)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+  }
 
-    public User findFriendById(Long id) {
-        return userRepository
-                .findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.FRIEND_NOT_FOUND));
-    }
+  public User findFriendById(Long id) {
+    return userRepository
+        .findById(id)
+        .orElseThrow(() -> new AppException(ErrorCode.FRIEND_NOT_FOUND));
+  }
 }

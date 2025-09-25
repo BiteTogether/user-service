@@ -9,8 +9,7 @@ import lombok.Setter;
 @Setter
 public class CreateFriendRequestRequest {
 
-    @NotNull(message = "Receiver ID cannot be null")
-    @Positive(message = "Receiver ID must be a positive number")
-    private Long receiverId;
-
+  @NotNull(message = "Receiver ID cannot be null")
+  @Positive(message = "Receiver ID must be a positive number")
+  private Long receiverId;
 }
