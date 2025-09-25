@@ -7,11 +7,11 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
-import com.bitetogether.common.exception.ErrorCode;
 import com.bitetogether.user.dto.auth.request.LoginRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
+import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.AuthService;
@@ -51,13 +51,8 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<TokenResponse> refreshToken(RefreshTokenRequest refreshTokenRequest) {
         String refreshToken = refreshTokenRequest.getRefreshToken();
 
-        if (!jwtService.isTokenValid(refreshToken)) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-
         String email = jwtService.extractEmail(refreshToken);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserByEmail(email);
 
         String newAccessToken = jwtService.generateToken(user);
         String newRefreshToken = jwtService.generateRefreshToken(user);
@@ -87,14 +82,18 @@ public class AuthServiceImpl implements AuthService {
         return user;
     }
 
-    private TokenResponse createTokenResponse(String accessToken, String refreshToken) {
-        TokenResponse response = new TokenResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setExpiresIn(jwtProperties.getExpiration() / 1000);
-        response.setRefreshExpiresIn(jwtProperties.getRefreshExpiration() / 1000);
-        response.setSessionState(java.util.UUID.randomUUID().toString());
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
 
-        return response;
+    private TokenResponse createTokenResponse(String accessToken, String refreshToken) {
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtProperties.getExpiration() / 1000)
+                .refreshExpiresIn(jwtProperties.getRefreshExpiration() / 1000)
+                .sessionState(java.util.UUID.randomUUID().toString())
+                .build();
     }
 }

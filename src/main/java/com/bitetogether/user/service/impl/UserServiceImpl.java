@@ -8,14 +8,16 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
-import com.bitetogether.common.exception.ErrorCode;
+import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.response.UserResponse;
+import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.UserService;
+import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -32,6 +34,7 @@ public class UserServiceImpl implements UserService {
   UserRepository userRepository;
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
+  UserHelper userHelper;
 
   @Override
   @Transactional
@@ -52,7 +55,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public ApiResponse<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest) {
-    User existingUser = findUserById(id);
+    User existingUser = userHelper.findUserById(id);
 
     validateUserAuthorization(id);
 
@@ -69,7 +72,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public ApiResponse<String> deleteUser(Long id) {
-    User existingUser = findUserById(id);
+    User existingUser = userHelper.findUserById(id);
 
     validateUserAuthorization(id);
 
@@ -83,7 +86,7 @@ public class UserServiceImpl implements UserService {
   public ApiResponse<UserResponse> getCurrentUser() {
     Long currentUserId = getCurrentUserId();
 
-    User currentUser = findUserById(currentUserId);
+    User currentUser = userHelper.findUserById(currentUserId);
 
     UserResponse userResponse = userMapper.toUserResponse(currentUser);
 
@@ -97,7 +100,7 @@ public class UserServiceImpl implements UserService {
   public ApiResponse<UserResponse> getUserById(Long id) {
     validateGetUserByIdRequest(id);
 
-    User user = findUserById(id);
+    User user = userHelper.findUserById(id);
 
     UserResponse userResponse = userMapper.toUserResponse(user);
 
@@ -107,48 +110,59 @@ public class UserServiceImpl implements UserService {
         userResponse);
   }
 
-  private User findUserById(Long id) {
-    return userRepository
-        .findById(id)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-  }
-
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
-    if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+    String email = createUserRequest.getEmail();
+    String phoneNumber = createUserRequest.getPhoneNumber();
+
+    if (email != null && userRepository.existsByEmail(email)) {
       throw new AppException(ErrorCode.EMAIL_EXISTED);
     }
-    if (userRepository.existsByPhoneNumber(createUserRequest.getPhoneNumber())) {
+
+    if (phoneNumber != null && userRepository.existsByPhoneNumber(phoneNumber)) {
       throw new AppException(ErrorCode.PHONE_EXISTED);
     }
   }
 
   private void validateUpdateUserRequest(UpdateUserRequest updateUserRequest, User existingUser) {
-    if (updateUserRequest.getUsername() != null
-        && !updateUserRequest.getUsername().equals(existingUser.getUsername())
-        && userRepository.existsByUsername(updateUserRequest.getUsername())) {
+    String newUsername = updateUserRequest.getUsername();
+
+    if (newUsername != null
+        && !newUsername.trim().isEmpty()
+        && !newUsername.equals(existingUser.getUsername())
+        && userRepository.existsByUsername(newUsername)) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
     }
   }
 
   private void validateGetUserByIdRequest(Long id) {
-    if (hasRole(Role.USER.name())) {
-      Long currentUserId = getCurrentUserId();
-      if (currentUserId.equals(id)) {
-        return;
-      }
-      User currentUser = findUserById(currentUserId);
-      if (currentUser.getFriendList().stream().noneMatch(friend -> friend.getId().equals(id))) {
-        throw new AppException(ErrorCode.USER_FORBIDDEN);
-      }
+    if (!hasRole(Role.USER.name())) {
+      return;
+    }
+
+    Long currentUserId = getCurrentUserId();
+
+    if (currentUserId.equals(id)) {
+      return;
+    }
+
+    User currentUser = userHelper.findUserById(currentUserId);
+    boolean isFriend = currentUser.getFriendList().stream()
+        .anyMatch(friend -> friend.getId().equals(id));
+
+    if (!isFriend) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
   }
 
   private void validateUserAuthorization(Long id) {
-    if (hasRole(Role.USER.name())) {
-      Long currentUserId = getCurrentUserId();
-      if (!currentUserId.equals(id)) {
-        throw new AppException(ErrorCode.USER_FORBIDDEN);
-      }
+    if (!hasRole(Role.USER.name())) {
+      return;
+    }
+
+    Long currentUserId = getCurrentUserId();
+
+    if (!currentUserId.equals(id)) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
   }
 

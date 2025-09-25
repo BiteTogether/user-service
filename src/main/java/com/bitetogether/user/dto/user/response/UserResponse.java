@@ -1,6 +1,5 @@
 package com.bitetogether.user.dto.user.response;
 
-import com.bitetogether.common.enums.Role;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -13,5 +12,5 @@ public class UserResponse {
   private String fullName;
   private String phoneNumber;
   private String avatar;
-  private Role role;
+  private String role;
 }

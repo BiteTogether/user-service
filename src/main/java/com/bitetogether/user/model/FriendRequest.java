@@ -10,6 +10,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 public class FriendRequest extends BaseEntity {
 
     @Id
@@ -23,14 +24,4 @@ public class FriendRequest extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RequestStatus status;
-
-    public enum RequestStatus {
-        PENDING,
-        ACCEPTED,
-        REJECTED
-    }
 }
