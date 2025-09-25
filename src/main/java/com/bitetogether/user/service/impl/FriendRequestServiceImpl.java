@@ -1,10 +1,14 @@
 package com.bitetogether.user.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
+import com.bitetogether.user.convert.FriendRequestMapper;
 import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
+import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
@@ -16,7 +20,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
@@ -27,6 +36,7 @@ import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FriendRequestServiceImpl implements FriendRequestService {
     FriendRequestRepository friendRequestRepository;
+    FriendRequestMapper friendRequestMapper;
     UserHelper userHelper;
 
     @Override
@@ -81,6 +91,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
         FriendRequest friendRequest = validateDeleteFriendRequest(id, currentUserId);
 
+        deleteFriendRequestHelper(friendRequest);
 
         String message = friendRequest.getSender().getId().equals(currentUserId)
                 ? "Friend request withdrawn successfully"
@@ -94,8 +105,53 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     }
 
     @Override
-    public Object getPendingFriendRequests() {
-        return null;
+    public ApiResponsePagination<List<FriendRequestResponse>> getSentFriendRequests(PaginationRequest paginationRequest) {
+        Long currentUserId = getCurrentUserId();
+        User currentUser = userHelper.findUserById(currentUserId);
+
+        Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
+
+        Page<FriendRequest> friendRequestPage = friendRequestRepository.findBySenderId(currentUser.getId(), pageable);
+        List<FriendRequestResponse> friendRequestResponses = friendRequestPage.getContent().stream()
+                .map(friendRequest -> {
+                    User receiver = friendRequest.getReceiver();
+                    return friendRequestMapper.toFriendRequestResponse(receiver);
+                })
+                .toList();
+
+        return buildApiResponse(
+                ApiResponseStatus.SUCCESS,
+                "Sent friend requests retrieved successfully",
+                friendRequestResponses,
+                friendRequestPage.getNumber(),
+                friendRequestPage.getTotalElements(),
+                friendRequestPage.getTotalPages()
+        );
+    }
+
+    @Override
+    public ApiResponsePagination<List<FriendRequestResponse>> getReceivedFriendRequests(PaginationRequest paginationRequest) {
+        Long currentUserId = getCurrentUserId();
+        User currentUser = userHelper.findUserById(currentUserId);
+
+        Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
+
+        Page<FriendRequest> friendRequestPage = friendRequestRepository.findByReceiverId(currentUser.getId(), pageable);
+        List<FriendRequestResponse> friendRequestResponses = friendRequestPage.stream()
+                .map(friendRequest -> {
+                    User sender = friendRequest.getSender();
+                    return friendRequestMapper.toFriendRequestResponse(sender);
+                })
+                .toList();
+
+        return buildApiResponse(
+                ApiResponseStatus.SUCCESS,
+                "Received friend requests retrieved successfully",
+                friendRequestResponses,
+                friendRequestPage.getNumber(),
+                friendRequestPage.getTotalElements(),
+                friendRequestPage.getTotalPages()
+        );
     }
 
     private void deleteFriendRequestHelper(FriendRequest friendRequest) {

@@ -22,7 +22,7 @@ public enum ErrorCode implements BaseErrorCode {
   FRIEND_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "You don't have this friend"),
   ALREADY_FRIENDS(ApiResponseStatus.CONFLICT, "You are already friends"),
 
-  INVALID_FRIEND_REQUEST(ApiResponseStatus.BAD_REQUEST, "Invalid friend request"),
+  INVALID_FRIEND_REQUEST(ApiResponseStatus.BAD_REQUEST, "You can't send friend request to yourself"),
   FRIEND_REQUEST_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Friend request not found"),
   FRIEND_REQUEST_ALREADY_EXISTS(ApiResponseStatus.CONFLICT, "Friend request already exists"),
 

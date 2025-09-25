@@ -1,7 +1,10 @@
 package com.bitetogether.user.controller;
 
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
+import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.service.FriendRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +16,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND_REQUEST;
@@ -44,8 +49,17 @@ public class FriendRequestController {
         return buildEntityResponse(friendRequestService.deleteFriendRequest(id));
     }
 
-    @GetMapping("/pending")
-    public ResponseEntity<ApiResponse<?>> getPendingFriendRequests() {
-        return buildEntityResponse(friendRequestService.getPendingFriendRequests());
+    @GetMapping("/sent")
+    public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>> getSentFriendRequests(
+            @RequestBody PaginationRequest paginationRequest
+    ) {
+        return buildEntityResponse(friendRequestService.getSentFriendRequests(paginationRequest));
+    }
+
+    @GetMapping("/received")
+    public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>> getReceivedFriendRequests(
+            @RequestBody PaginationRequest paginationRequest
+    ) {
+        return buildEntityResponse(friendRequestService.getReceivedFriendRequests(paginationRequest));
     }
 }
