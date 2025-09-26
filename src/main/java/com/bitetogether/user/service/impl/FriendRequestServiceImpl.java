@@ -116,8 +116,8 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         "Sent friend requests retrieved successfully",
         friendRequestResponses,
         friendRequestPage.getNumber(),
-        friendRequestPage.getTotalElements(),
-        friendRequestPage.getTotalPages());
+        friendRequestPage.getTotalPages(),
+        friendRequestPage.getTotalElements());
   }
 
   @Override
@@ -144,8 +144,8 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         "Received friend requests retrieved successfully",
         friendRequestResponses,
         friendRequestPage.getNumber(),
-        friendRequestPage.getTotalElements(),
-        friendRequestPage.getTotalPages());
+        friendRequestPage.getTotalPages(),
+        friendRequestPage.getTotalElements());
   }
 
   private void deleteFriendRequestHelper(FriendRequest friendRequest) {
