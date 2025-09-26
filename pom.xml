@@ -26,7 +26,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.bitetogether</groupId>
+            <groupId>io.github.bitetogether</groupId>
             <artifactId>common-service</artifactId>
             <version>${common-service.version}</version>
         </dependency>
@@ -85,6 +85,14 @@
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages - BiteTogether/common-service</name>
+            <url>https://maven.pkg.github.com/BiteTogether/common-service</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
