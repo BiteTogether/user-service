@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  bitetogether-user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      secrets:
+        - github_token
+        - github_username
+    ports:
+      - "${SERVER_PORT:-8081}:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-database,security,jwt}
+      SERVER_PORT: ${SERVER_PORT:-8081}
+
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/mydatabase}
+      DB_USERNAME: ${DB_USERNAME:-myuser}
+      DB_PASSWORD: ${DB_PASSWORD:-mypassword}
+      DB_DRIVER: ${DB_DRIVER:-org.postgresql.Driver}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      HIBERNATE_DIALECT: ${HIBERNATE_DIALECT:-org.hibernate.dialect.PostgreSQLDialect}
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-here-make-it-at-least-256-bits-long-for-security}
+
+      SECURITY_PERMIT_PATHS: ${SECURITY_PERMIT_PATHS:-/actuator/**,/swagger-ui/**,/v3/api-docs/**,/api/v1//auth/**}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
+      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-*}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+
+      API_TITLE: ${API_TITLE}
+      API_DESCRIPTION: ${API_DESCRIPTION}
+      API_VERSION: ${API_VERSION}
+      API_CONTACT_NAME: ${API_CONTACT_NAME}
+      API_CONTACT_EMAIL: ${API_CONTACT_EMAIL}
+      API_DEV_URL: ${API_DEV_URL}
+      API_PROD_URL: ${API_PROD_URL}
+
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mydatabase}
+      POSTGRES_USER: ${DB_USERNAME:-myuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mypassword}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+
+secrets:
+  github_token:
+    file: github_token.txt
+  github_username:
+    file: github_username.txt

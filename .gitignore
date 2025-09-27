@@ -3,6 +3,7 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+maven/
 
 ### STS ###
 .apt_generated
@@ -34,8 +35,11 @@ build/
 
 # Environment files
 .env
-.env.local
+.env.dev
 .env.development
 .env.test
 .env.production
 .env.staging
+
+github_token.txt
+github_username.txt

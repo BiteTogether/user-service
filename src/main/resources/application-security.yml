@@ -1,6 +1,6 @@
 app:
   security:
-    permit-paths: ${SECURITY_PERMIT_PATHS:/actuator/**,/swagger-ui/**,/v3/api-docs/**,/api/auth/**,/auth/**}
+    permit-paths: ${SECURITY_PERMIT_PATHS:/actuator/**,/swagger-ui/**,/v3/api-docs/**,/api/v1/auth/**}
     allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
     allowed-headers: ${CORS_ALLOWED_HEADERS:*}
