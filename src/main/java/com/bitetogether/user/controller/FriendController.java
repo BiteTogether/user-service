@@ -4,6 +4,7 @@ import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND;
 
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.service.FriendService;
 import java.util.List;
@@ -24,8 +25,9 @@ public class FriendController {
   private final FriendService friendService;
 
   @GetMapping
-  public ResponseEntity<ApiResponse<List<FriendResponse>>> getFriendsList() {
-    return buildEntityResponse(friendService.getFriendsList());
+  public ResponseEntity<ApiResponse<List<FriendResponse>>> getFriendsList(
+      PaginationRequest paginationRequest) {
+    return buildEntityResponse(friendService.getFriendsList(paginationRequest));
   }
 
   @PostMapping("/{id}")

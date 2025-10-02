@@ -10,7 +10,6 @@ import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.FriendRequestMapper;
-import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.FriendRequest;
@@ -40,9 +39,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
   @Override
   @Transactional
-  public ApiResponse<Long> createFriendRequest(
-      CreateFriendRequestRequest createFriendRequestRequest) {
-    Long receiverId = createFriendRequestRequest.getReceiverId();
+  public ApiResponse<Long> createFriendRequest(Long receiverId) {
     Long senderId = getCurrentUserId();
 
     validateCreateFriendRequest(senderId, receiverId);
@@ -63,13 +60,9 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   public ApiResponse<Void> acceptFriendRequest(Long id) {
     FriendRequest friendRequest = validateAcceptFriendRequest(id);
 
-    User sender = friendRequest.getSender();
-    User receiver = friendRequest.getReceiver();
+    establishFriendship(friendRequest);
 
-    sender.getFriendList().add(receiver);
-    receiver.getFriendList().add(sender);
-
-    deleteFriendRequestHelper(friendRequest);
+    deleteFriendRequestHelper(friendRequest.getId());
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "Friend request accepted successfully", null);
@@ -82,7 +75,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
     FriendRequest friendRequest = validateDeleteFriendRequest(id, currentUserId);
 
-    deleteFriendRequestHelper(friendRequest);
+    deleteFriendRequestHelper(friendRequest.getId());
 
     String message =
         friendRequest.getSender().getId().equals(currentUserId)
@@ -148,10 +141,6 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         friendRequestPage.getTotalElements());
   }
 
-  private void deleteFriendRequestHelper(FriendRequest friendRequest) {
-    friendRequestRepository.delete(friendRequest);
-  }
-
   private void validateCreateFriendRequest(Long senderId, Long receiverId) {
     if (senderId.equals(receiverId)) {
       throw new AppException(ErrorCode.INVALID_FRIEND_REQUEST);
@@ -160,7 +149,9 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     User sender = userHelper.findUserById(senderId);
     User receiver = userHelper.findUserById(receiverId);
 
-    if (sender.getFriendList().stream().anyMatch(friend -> friend.getId().equals(receiverId))) {
+    boolean isFriended =
+        sender.getFriends().contains(receiver) || receiver.getFriends().contains(sender);
+    if (isFriended) {
       throw new AppException(ErrorCode.ALREADY_FRIENDS);
     }
 
@@ -184,6 +175,21 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     }
 
     return friendRequest;
+  }
+
+  private void establishFriendship(FriendRequest friendRequest) {
+    User sender = friendRequest.getSender();
+    User receiver = friendRequest.getReceiver();
+
+    sender.getFriends().add(receiver);
+    receiver.getFriends().add(sender);
+
+    userHelper.saveUser(sender);
+    userHelper.saveUser(receiver);
+  }
+
+  private void deleteFriendRequestHelper(Long id) {
+    friendRequestRepository.deleteById(id);
   }
 
   private FriendRequest validateDeleteFriendRequest(Long requestId, Long currentUserId) {

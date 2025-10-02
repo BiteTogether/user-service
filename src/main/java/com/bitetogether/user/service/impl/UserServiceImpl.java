@@ -46,7 +46,7 @@ public class UserServiceImpl implements UserService {
     handlePassword(newUser);
     handleRole(newUser);
 
-    User databaseUser = userRepository.save(newUser);
+    User databaseUser = userHelper.saveUser(newUser);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "User created successfully", databaseUser.getId());
@@ -63,7 +63,7 @@ public class UserServiceImpl implements UserService {
 
     userMapper.updateUserFromRequest(updateUserRequest, existingUser);
 
-    User updatedUser = userRepository.save(existingUser);
+    User updatedUser = userHelper.saveUser(existingUser);
     UserResponse userResponse = userMapper.toUserResponse(updatedUser);
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "User updated successfully", userResponse);
@@ -146,10 +146,9 @@ public class UserServiceImpl implements UserService {
     }
 
     User currentUser = userHelper.findUserById(currentUserId);
-    boolean isFriend =
-        currentUser.getFriendList().stream().anyMatch(friend -> friend.getId().equals(id));
+    boolean isFriended = currentUser.getFriends().contains(currentUser);
 
-    if (!isFriend) {
+    if (!isFriended) {
       throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
   }

@@ -27,4 +27,8 @@ public class UserHelper {
         .findById(id)
         .orElseThrow(() -> new AppException(ErrorCode.FRIEND_NOT_FOUND));
   }
+
+  public User saveUser(User user) {
+    return userRepository.save(user);
+  }
 }
