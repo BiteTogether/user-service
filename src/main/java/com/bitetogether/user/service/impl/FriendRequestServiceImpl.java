@@ -9,7 +9,7 @@ import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
-import com.bitetogether.user.convert.FriendRequestMapper;
+import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.FriendRequest;
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FriendRequestServiceImpl implements FriendRequestService {
   FriendRequestRepository friendRequestRepository;
-  FriendRequestMapper friendRequestMapper;
+  UserMapper userMapper;
   UserHelper userHelper;
 
   @Override
@@ -89,18 +89,20 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   public ApiResponsePagination<List<FriendRequestResponse>> getSentFriendRequests(
       PaginationRequest paginationRequest) {
     Long currentUserId = getCurrentUserId();
-    User currentUser = userHelper.findUserById(currentUserId);
 
     Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
 
     Page<FriendRequest> friendRequestPage =
-        friendRequestRepository.findBySenderId(currentUser.getId(), pageable);
+        friendRequestRepository.findBySenderId(currentUserId, pageable);
     List<FriendRequestResponse> friendRequestResponses =
         friendRequestPage.getContent().stream()
             .map(
                 friendRequest -> {
                   User receiver = friendRequest.getReceiver();
-                  return friendRequestMapper.toFriendRequestResponse(receiver);
+                  return FriendRequestResponse.builder()
+                      .id(friendRequest.getId())
+                      .user(userMapper.toFriendResponse(receiver))
+                      .build();
                 })
             .toList();
 
@@ -117,18 +119,20 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   public ApiResponsePagination<List<FriendRequestResponse>> getReceivedFriendRequests(
       PaginationRequest paginationRequest) {
     Long currentUserId = getCurrentUserId();
-    User currentUser = userHelper.findUserById(currentUserId);
 
     Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
 
     Page<FriendRequest> friendRequestPage =
-        friendRequestRepository.findByReceiverId(currentUser.getId(), pageable);
+        friendRequestRepository.findByReceiverId(currentUserId, pageable);
     List<FriendRequestResponse> friendRequestResponses =
-        friendRequestPage.stream()
+        friendRequestPage.getContent().stream()
             .map(
                 friendRequest -> {
                   User sender = friendRequest.getSender();
-                  return friendRequestMapper.toFriendRequestResponse(sender);
+                  return FriendRequestResponse.builder()
+                      .id(friendRequest.getId())
+                      .user(userMapper.toFriendResponse(sender))
+                      .build();
                 })
             .toList();
 
