@@ -1,15 +1,12 @@
 package com.bitetogether.user.dto.friendrequest.response;
 
+import com.bitetogether.user.dto.friend.response.FriendResponse;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 @Builder
 public class FriendRequestResponse {
   private Long id;
-  private String username;
-  private String fullName;
-  private String avatar;
+  private FriendResponse user;
 }

@@ -6,10 +6,8 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIE
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.dto.PaginationRequest;
-import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.service.FriendRequestService;
-import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,14 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class FriendRequestController {
   private final FriendRequestService friendRequestService;
 
-  @PostMapping
-  public ResponseEntity<ApiResponse<Long>> createFriendRequest(
-      @Valid @RequestBody CreateFriendRequestRequest createFriendRequestRequest) {
-    return buildEntityResponse(
-        friendRequestService.createFriendRequest(createFriendRequestRequest));
+  @PostMapping("/{receiverId}")
+  public ResponseEntity<ApiResponse<Long>> createFriendRequest(@PathVariable Long receiverId) {
+    return buildEntityResponse(friendRequestService.createFriendRequest(receiverId));
   }
 
-  @PostMapping("/accept/{id}")
+  @PostMapping("/{id}/accept")
   public ResponseEntity<ApiResponse<Void>> acceptFriendRequest(@PathVariable Long id) {
     return buildEntityResponse(friendRequestService.acceptFriendRequest(id));
   }

@@ -3,12 +3,11 @@ package com.bitetogether.user.service;
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.dto.PaginationRequest;
-import com.bitetogether.user.dto.friendrequest.request.CreateFriendRequestRequest;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import java.util.List;
 
 public interface FriendRequestService {
-  ApiResponse<Long> createFriendRequest(CreateFriendRequestRequest createFriendRequestRequest);
+  ApiResponse<Long> createFriendRequest(Long receiverId);
 
   ApiResponse<Void> acceptFriendRequest(Long id);
 
