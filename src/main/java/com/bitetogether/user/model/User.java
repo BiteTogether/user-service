@@ -1,6 +1,5 @@
 package com.bitetogether.user.model;
 
-import com.bitetogether.common.model.BaseEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
