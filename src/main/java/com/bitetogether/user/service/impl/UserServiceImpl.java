@@ -12,6 +12,7 @@ import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
@@ -83,31 +84,31 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<UserResponse> getCurrentUser() {
+  public ApiResponse<UserDetailsResponse> getCurrentUser() {
     Long currentUserId = getCurrentUserId();
 
     User currentUser = userHelper.findUserById(currentUserId);
 
-    UserResponse userResponse = userMapper.toUserResponse(currentUser);
+    UserDetailsResponse userDetailsResponse = userMapper.toUserDetailsResponse(currentUser);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
         "Your account's information has been fetched successfully",
-        userResponse);
+        userDetailsResponse);
   }
 
   @Override
-  public ApiResponse<UserResponse> getUserById(Long id) {
+  public ApiResponse<UserDetailsResponse> getUserById(Long id) {
     validateGetUserByIdRequest(id);
 
     User user = userHelper.findUserById(id);
 
-    UserResponse userResponse = userMapper.toUserResponse(user);
+    UserDetailsResponse userDetailsResponse = userMapper.toUserDetailsResponse(user);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
         "User's information has been fetched successfully",
-        userResponse);
+        userDetailsResponse);
   }
 
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
