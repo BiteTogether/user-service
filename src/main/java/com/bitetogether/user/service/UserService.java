@@ -3,6 +3,7 @@ package com.bitetogether.user.service;
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 
 public interface UserService {
@@ -12,7 +13,7 @@ public interface UserService {
 
   ApiResponse<String> deleteUser(Long id);
 
-  ApiResponse<UserResponse> getCurrentUser();
+  ApiResponse<UserDetailsResponse> getCurrentUser();
 
-  ApiResponse<UserResponse> getUserById(Long id);
+  ApiResponse<UserDetailsResponse> getUserById(Long id);
 }

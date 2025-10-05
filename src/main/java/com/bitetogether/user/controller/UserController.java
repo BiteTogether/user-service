@@ -7,6 +7,7 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_USER
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.service.UserService;
 import jakarta.validation.Valid;
@@ -49,12 +50,12 @@ public class UserController {
   }
 
   @GetMapping("/me")
-  public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
+  public ResponseEntity<ApiResponse<UserDetailsResponse>> getCurrentUser() {
     return buildEntityResponse(userService.getCurrentUser());
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
+  public ResponseEntity<ApiResponse<UserDetailsResponse>> getUserById(@PathVariable Long id) {
     return buildEntityResponse(userService.getUserById(id));
   }
 }
