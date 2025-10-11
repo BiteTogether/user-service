@@ -8,6 +8,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.service.UserService;
@@ -64,5 +65,10 @@ public class UserController {
   public ResponseEntity<ApiResponse<Void>> saveDeviceToken(
       @Valid @RequestBody SaveDeviceTokenRequest saveDeviceTokenRequest) {
     return buildEntityResponse(userService.saveDeviceToken(saveDeviceTokenRequest));
+  }
+
+  @GetMapping("/device-token")
+  public ResponseEntity<ApiResponse<SaveDeviceTokenResponse>> getDeviceToken() {
+    return buildEntityResponse(userService.getDeviceToken());
   }
 }

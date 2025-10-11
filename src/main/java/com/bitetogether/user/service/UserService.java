@@ -4,6 +4,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 
@@ -19,4 +20,6 @@ public interface UserService {
   ApiResponse<UserDetailsResponse> getUserById(Long id);
 
   ApiResponse<Void> saveDeviceToken(SaveDeviceTokenRequest requestDto);
+
+  ApiResponse<SaveDeviceTokenResponse> getDeviceToken();
 }
