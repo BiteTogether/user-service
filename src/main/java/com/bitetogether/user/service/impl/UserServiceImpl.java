@@ -13,6 +13,7 @@ import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.exception.ErrorCode;
@@ -119,8 +120,26 @@ public class UserServiceImpl implements UserService {
 
     String deviceToken = requestDto.getDeviceToken();
     currentUser.setDeviceToken(deviceToken);
+    userHelper.saveUser(currentUser);
+
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "User's device information has been updated successfully", null);
+  }
+
+  @Override
+  public ApiResponse<SaveDeviceTokenResponse> getDeviceToken() {
+    Long currentUserId = getCurrentUserId();
+    User currentUser = userHelper.findUserById(currentUserId);
+
+    String deviceToken = currentUser.getDeviceToken();
+
+    SaveDeviceTokenResponse responseDto = new SaveDeviceTokenResponse();
+    responseDto.setDeviceToken(deviceToken);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        "User's device information has been fetched successfully",
+        responseDto);
   }
 
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
