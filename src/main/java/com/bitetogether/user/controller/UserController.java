@@ -7,8 +7,10 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_USER
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
+import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,5 +59,11 @@ public class UserController {
   @GetMapping("/{id}")
   public ResponseEntity<ApiResponse<UserDetailsResponse>> getUserById(@PathVariable Long id) {
     return buildEntityResponse(userService.getUserById(id));
+  }
+
+  @PostMapping("/search")
+  public ResponseEntity<ApiResponse<UserSearchResponse>> searchUsersWithFilter(
+      @Valid @RequestBody UserSearchRequest userSearchRequest) {
+    return buildEntityResponse(userService.searchUsersWithFilter(userSearchRequest));
   }
 }

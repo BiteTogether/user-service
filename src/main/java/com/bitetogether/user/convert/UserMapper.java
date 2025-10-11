@@ -5,6 +5,7 @@ import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
+import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.model.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -23,4 +24,6 @@ public interface UserMapper {
   void updateUserFromRequest(UpdateUserRequest updateUserRequest, @MappingTarget User user);
 
   FriendResponse toFriendResponse(User user);
+
+  UserSearchResponse toUserSearchResponse(User user);
 }

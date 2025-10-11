@@ -16,7 +16,6 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.FriendService;
 import com.bitetogether.user.util.UserHelper;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -37,13 +36,13 @@ public class FriendServiceImpl implements FriendService {
   UserRepository userRepository;
 
   @Override
-  public ApiResponse<List<FriendResponse>> getFriendsList(PaginationRequest paginationRequest) {
+  public ApiResponse<Page<FriendResponse>> getFriendsList(PaginationRequest paginationRequest) {
     Long currentUserId = getCurrentUserId();
 
     Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
     Page<User> friendPage = userRepository.getFriendsByUserId(currentUserId, pageable);
 
-    List<FriendResponse> friends = friendPage.stream().map(userMapper::toFriendResponse).toList();
+    Page<FriendResponse> friends = friendPage.map(userMapper::toFriendResponse);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,

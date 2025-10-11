@@ -91,17 +91,17 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     Long currentUserId = getCurrentUserId();
 
     Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
-
     Page<FriendRequest> friendRequestPage =
         friendRequestRepository.findBySenderId(currentUserId, pageable);
+
     List<FriendRequestResponse> friendRequestResponses =
         friendRequestPage.getContent().stream()
             .map(
                 friendRequest -> {
-                  User receiver = friendRequest.getReceiver();
+                  User sender = friendRequest.getSender();
                   return FriendRequestResponse.builder()
                       .id(friendRequest.getId())
-                      .user(userMapper.toFriendResponse(receiver))
+                      .user(userMapper.toFriendResponse(sender))
                       .build();
                 })
             .toList();
@@ -121,17 +121,17 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     Long currentUserId = getCurrentUserId();
 
     Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
-
     Page<FriendRequest> friendRequestPage =
         friendRequestRepository.findByReceiverId(currentUserId, pageable);
+
     List<FriendRequestResponse> friendRequestResponses =
         friendRequestPage.getContent().stream()
             .map(
                 friendRequest -> {
-                  User sender = friendRequest.getSender();
+                  User receiver = friendRequest.getReceiver();
                   return FriendRequestResponse.builder()
                       .id(friendRequest.getId())
-                      .user(userMapper.toFriendResponse(sender))
+                      .user(userMapper.toFriendResponse(receiver))
                       .build();
                 })
             .toList();

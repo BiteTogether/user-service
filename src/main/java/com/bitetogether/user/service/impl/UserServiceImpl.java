@@ -12,14 +12,17 @@ import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
+import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,6 +39,10 @@ public class UserServiceImpl implements UserService {
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
   UserHelper userHelper;
+
+  private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{9,11}$");
+  private static final Pattern EMAIL_PATTERN =
+      Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 
   @Override
   @Transactional
@@ -111,6 +118,23 @@ public class UserServiceImpl implements UserService {
         userDetailsResponse);
   }
 
+  @Override
+  public ApiResponse<UserSearchResponse> searchUsersWithFilter(
+      UserSearchRequest userSearchRequest) {
+    String keyword = userSearchRequest.getKeyword().trim();
+
+    User searchedUser = searchUser(keyword);
+
+    UserSearchResponse userSearchResponse =
+        searchedUser == null ? null : userMapper.toUserSearchResponse(searchedUser);
+    String message =
+        searchedUser == null
+            ? "No users found matching the keyword"
+            : "Users have been fetched successfully";
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, message, userSearchResponse);
+  }
+
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
     String email = createUserRequest.getEmail();
     String phoneNumber = createUserRequest.getPhoneNumber();
@@ -174,6 +198,16 @@ public class UserServiceImpl implements UserService {
   private void handleRole(User newUser) {
     if (newUser.getRole() == null) {
       newUser.setRole(Role.USER.name());
+    }
+  }
+
+  private User searchUser(String keyword) {
+    if (PHONE_PATTERN.matcher(keyword).matches()) {
+      return userRepository.findByPhoneNumber(keyword).orElse(null);
+    } else if (EMAIL_PATTERN.matcher(keyword).matches()) {
+      return userRepository.findByEmail(keyword).orElse(null);
+    } else {
+      throw new AppException(ErrorCode.INVALID_KEYWORD);
     }
   }
 }

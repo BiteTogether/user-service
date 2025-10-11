@@ -7,9 +7,9 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.service.FriendService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +25,7 @@ public class FriendController {
   private final FriendService friendService;
 
   @GetMapping
-  public ResponseEntity<ApiResponse<List<FriendResponse>>> getFriendsList(
+  public ResponseEntity<ApiResponse<Page<FriendResponse>>> getFriendsList(
       PaginationRequest paginationRequest) {
     return buildEntityResponse(friendService.getFriendsList(paginationRequest));
   }

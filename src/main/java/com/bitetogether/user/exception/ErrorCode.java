@@ -18,6 +18,7 @@ public enum ErrorCode implements BaseErrorCode {
   USERNAME_EXISTED(ApiResponseStatus.CONFLICT, "This username is already existed"),
   EMAIL_EXISTED(ApiResponseStatus.CONFLICT, "This email is already existed"),
   PHONE_EXISTED(ApiResponseStatus.CONFLICT, "This phone number is already existed"),
+  INVALID_KEYWORD(ApiResponseStatus.BAD_REQUEST, "Invalid search keyword"),
 
   FRIEND_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "You don't have this friend"),
   ALREADY_FRIENDS(ApiResponseStatus.CONFLICT, "You are already friends"),

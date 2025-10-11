@@ -3,8 +3,10 @@ package com.bitetogether.user.service;
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
+import com.bitetogether.user.dto.user.response.UserSearchResponse;
 
 public interface UserService {
   ApiResponse<Long> createUser(CreateUserRequest createUserRequest);
@@ -16,4 +18,6 @@ public interface UserService {
   ApiResponse<UserDetailsResponse> getCurrentUser();
 
   ApiResponse<UserDetailsResponse> getUserById(Long id);
+
+  ApiResponse<UserSearchResponse> searchUsersWithFilter(UserSearchRequest userSearchRequest);
 }
