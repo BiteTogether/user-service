@@ -8,18 +8,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class TokenResponse {
+public class RefreshTokenReponse {
   @JsonProperty("access_token")
   private String accessToken;
 
   @JsonProperty("expires_in")
   private Long expiresIn;
-
-  @JsonProperty("refresh_token")
-  private String refreshToken;
-
-  @JsonProperty("refresh_expires_in")
-  private Long refreshExpiresIn;
 
   @JsonProperty("session_state")
   private String sessionState;

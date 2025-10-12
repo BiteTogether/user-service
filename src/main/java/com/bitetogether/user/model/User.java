@@ -64,8 +64,6 @@ public class User extends BaseEntity {
   @Column(name = "role", nullable = false)
   String role;
 
-  @Column String deviceToken;
-
   @ManyToMany
   @JoinTable(
       name = "user_friends",

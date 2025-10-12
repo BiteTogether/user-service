@@ -22,6 +22,9 @@ public enum ErrorCode implements BaseErrorCode {
   FRIEND_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "You don't have this friend"),
   ALREADY_FRIENDS(ApiResponseStatus.CONFLICT, "You are already friends"),
 
+  REFRESH_TOKEN_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Refresh token is not found or expired"),
+  DEVICE_TOKEN_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Device token is not found or expired"),
+
   INVALID_FRIEND_REQUEST(
       ApiResponseStatus.BAD_REQUEST, "You can't send friend request to yourself"),
   FRIEND_REQUEST_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Friend request not found"),
