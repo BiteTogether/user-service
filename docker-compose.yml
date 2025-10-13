@@ -5,13 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      secrets:
-        - github_token
-        - github_username
     ports:
       - "${SERVER_PORT:-8081}:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-database,security,jwt}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-database,security,jwt,openapi}
       SERVER_PORT: ${SERVER_PORT:-8081}
 
       DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/mydatabase}
@@ -22,28 +19,40 @@ services:
       HIBERNATE_DIALECT: ${HIBERNATE_DIALECT:-org.hibernate.dialect.PostgreSQLDialect}
 
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-here-make-it-at-least-256-bits-long-for-security}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-900}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-86400}
 
-      SECURITY_PERMIT_PATHS: ${SECURITY_PERMIT_PATHS:-/actuator/**,/swagger-ui/**,/v3/api-docs/**,/api/v1//auth/**}
+      SECURITY_PERMIT_PATHS: ${SECURITY_PERMIT_PATHS:-/actuator/**,/swagger-ui/**,/v3/api-docs/**,/api/v1/auth/**}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
       CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
       CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-*}
       CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
 
-      API_TITLE: ${API_TITLE}
-      API_DESCRIPTION: ${API_DESCRIPTION}
-      API_VERSION: ${API_VERSION}
-      API_CONTACT_NAME: ${API_CONTACT_NAME}
-      API_CONTACT_EMAIL: ${API_CONTACT_EMAIL}
-      API_DEV_URL: ${API_DEV_URL}
-      API_PROD_URL: ${API_PROD_URL}
+      API_TITLE: ${API_TITLE:-BiteTogether User Service API}
+      API_DESCRIPTION: ${API_DESCRIPTION:-API documentation for BiteTogether User Service}
+      API_VERSION: ${API_VERSION:-v1}
+      API_CONTACT_NAME: ${API_CONTACT_NAME:-Thanhcn}
+      API_CONTACT_EMAIL: ${API_CONTACT_EMAIL:-nguyencongthanh2406@gmail.com}
+      API_DEV_URL: ${API_DEV_URL:-http://localhost:8081}
+      API_PROD_URL: ${API_PROD_URL:-https://}
+
+      # Sonar Configuration (optional - only needed if using SonarQube)
+      SONAR_PROJECT_KEY: ${SONAR_PROJECT_KEY:-bitetogether-user-service}
+      SONAR_PROJECT_NAME: ${SONAR_PROJECT_NAME:-BiteTogether User Service}
+      SONAR_PROJECT_VERSION: ${SONAR_PROJECT_VERSION:-1.0.0}
+      SONAR_HOST_URL: ${SONAR_HOST_URL:-http://localhost:9000}
+      SONAR_TOKEN: ${SONAR_TOKEN:-your-sonar-token-here}
 
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    networks:
+      - bitetogether-network
 
   postgres:
     image: postgres:16-alpine
     container_name: postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mydatabase}
       POSTGRES_USER: ${DB_USERNAME:-myuser}
@@ -52,12 +61,17 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-myuser} -d ${POSTGRES_DB:-mydatabase}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bitetogether-network
 
 volumes:
   pgdata:
 
-secrets:
-  github_token:
-    file: github_token.txt
-  github_username:
-    file: github_username.txt
+networks:
+  bitetogether-network:
+    driver: bridge

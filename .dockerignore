@@ -1,0 +1,48 @@
+# Ignore git files
+.git
+.gitignore
+
+# Ignore IDE files
+.idea/
+*.iml
+.vscode/
+
+# Ignore build artifacts
+target/
+*.jar
+!target/*.jar
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore temporary files
+*.tmp
+*.swp
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore Docker files (except the ones we need)
+Dockerfile.*
+docker-compose.override.yml
+
+# Ignore documentation
+README.md
+docs/
+
+# Ignore test files
+src/test/
+
+# Ignore Maven wrapper (we use the container's Maven)
+.mvn/
+mvnw
+mvnw.cmd
+
+# Keep these files for the build
+!.env
+!settings.xml
+!github_token.txt
+!github_username.txt
