@@ -5,22 +5,25 @@ FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-# Copy template settings.xml trước
-COPY maven/settings.template.xml /root/.m2/settings.template.xml
+# Copy toàn bộ project (bao gồm pom.xml, src/, v.v…)
+# Giả định rằng thư viện `common-service` đã được:
+#   ✅ cài sẵn vào local MAVEN (mvn install)
+#   ✅ HOẶC copy sẵn vào Maven repository cache dưới dạng .jar/.pom
+COPY pom.xml .
+COPY src ./src
 
-# Tạo file settings.xml từ template bằng secrets
-RUN --mount=type=secret,id=github_token \
-    --mount=type=secret,id=github_username \
-    TOKEN=$(cat /run/secrets/github_token) && \
-    USERNAME=$(cat /run/secrets/github_username) && \
-    sed -e "s|{{GITHUB_TOKEN}}|${TOKEN}|g" \
-        -e "s|{{GITHUB_USERNAME}}|${USERNAME}|g" \
-        /root/.m2/settings.template.xml > /root/.m2/settings.xml
+ARG COMMON_VERSION=0.0.1-SNAPSHOT
+COPY libs/common-service-${COMMON_VERSION}.jar /tmp/common-service.jar
 
-# Copy toàn bộ project (bao gồm pom.xml, src/, etc.)
-COPY . .
+RUN mvn -B org.apache.maven.plugins:maven-install-plugin:3.1.0:install-file \
+    -Dfile=/tmp/common-service.jar \
+    -DgroupId=io.github.bitetogether \
+    -DartifactId=common-service \
+    -Dversion=${COMMON_VERSION} \
+    -Dpackaging=jar
 
-# (Tuỳ chọn) Tối ưu cache bằng cách chạy dependency trước
+# ⚠️ Không dùng settings.xml & không gọi GitHub registry nữa
+# => Tối ưu cache dependency (sẽ dùng local maven repo)
 RUN mvn dependency:go-offline -B
 
 # Build ứng dụng

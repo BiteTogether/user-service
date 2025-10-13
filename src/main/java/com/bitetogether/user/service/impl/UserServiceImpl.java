@@ -106,8 +106,6 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public ApiResponse<UserDetailsResponse> getUserById(Long id) {
-    validateGetUserByIdRequest(id);
-
     User user = userHelper.findUserById(id);
 
     UserDetailsResponse userDetailsResponse = userMapper.toUserDetailsResponse(user);
@@ -156,25 +154,6 @@ public class UserServiceImpl implements UserService {
         && !newUsername.equals(existingUser.getUsername())
         && userRepository.existsByUsername(newUsername)) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
-    }
-  }
-
-  private void validateGetUserByIdRequest(Long id) {
-    if (!hasRole(Role.USER.name())) {
-      return;
-    }
-
-    Long currentUserId = getCurrentUserId();
-
-    if (currentUserId.equals(id)) {
-      return;
-    }
-
-    User currentUser = userHelper.findUserById(currentUserId);
-    boolean isFriended = currentUser.getFriends().contains(currentUser);
-
-    if (!isFriended) {
-      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
   }
 
