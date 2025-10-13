@@ -24,8 +24,9 @@ public class CreateUserRequest {
   @NotBlank(message = "Fullname can not be empty")
   String fullName;
 
-  @NotBlank(message = "Phone number can not be empty")
-  String phoneNumber;
+  @NotBlank(message = "Phone number cannot be empty")
+  @Pattern(regexp = "^\\d{9,11}$", message = "Phone number must contain 9 to 11 digits only")
+  private String phoneNumber;
 
   String avatar;
 

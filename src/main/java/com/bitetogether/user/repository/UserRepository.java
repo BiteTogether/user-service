@@ -21,4 +21,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   @Query("SELECT f FROM User u JOIN u.friends f WHERE u.id = :userId")
   Page<User> getFriendsByUserId(@Param("userId") Long userId, Pageable pageable);
+
+  Optional<User> findByPhoneNumber(String phoneNumber);
 }
