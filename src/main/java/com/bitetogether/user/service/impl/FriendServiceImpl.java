@@ -5,6 +5,7 @@ import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
 import static com.bitetogether.common.util.SecurityUtils.hasRole;
 
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
@@ -16,6 +17,7 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.FriendService;
 import com.bitetogether.user.util.UserHelper;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,13 +38,13 @@ public class FriendServiceImpl implements FriendService {
   UserRepository userRepository;
 
   @Override
-  public ApiResponse<Page<FriendResponse>> getFriendsList(PaginationRequest paginationRequest) {
+  public ApiResponsePagination<FriendResponse> getFriendsList(PaginationRequest paginationRequest) {
     Long currentUserId = getCurrentUserId();
 
     Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
     Page<User> friendPage = userRepository.getFriendsByUserId(currentUserId, pageable);
 
-    Page<FriendResponse> friends = friendPage.map(userMapper::toFriendResponse);
+    List<FriendResponse> friends = friendPage.stream().map(userMapper::toFriendResponse).toList();
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,

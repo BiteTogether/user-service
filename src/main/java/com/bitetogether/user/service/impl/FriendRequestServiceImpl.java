@@ -86,7 +86,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   }
 
   @Override
-  public ApiResponsePagination<List<FriendRequestResponse>> getSentFriendRequests(
+  public ApiResponsePagination<FriendRequestResponse> getSentFriendRequests(
       PaginationRequest paginationRequest) {
     Long currentUserId = getCurrentUserId();
 
@@ -116,7 +116,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   }
 
   @Override
-  public ApiResponsePagination<List<FriendRequestResponse>> getReceivedFriendRequests(
+  public ApiResponsePagination<FriendRequestResponse> getReceivedFriendRequests(
       PaginationRequest paginationRequest) {
     Long currentUserId = getCurrentUserId();
 

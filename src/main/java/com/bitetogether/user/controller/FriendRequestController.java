@@ -8,7 +8,7 @@ import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.service.FriendRequestService;
-import java.util.List;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -41,14 +41,14 @@ public class FriendRequestController {
   }
 
   @GetMapping("/sent")
-  public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>> getSentFriendRequests(
-      @RequestBody PaginationRequest paginationRequest) {
+  public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getSentFriendRequests(
+      @Valid @RequestBody PaginationRequest paginationRequest) {
     return buildEntityResponse(friendRequestService.getSentFriendRequests(paginationRequest));
   }
 
   @GetMapping("/received")
-  public ResponseEntity<ApiResponsePagination<List<FriendRequestResponse>>>
-      getReceivedFriendRequests(@RequestBody PaginationRequest paginationRequest) {
+  public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getReceivedFriendRequests(
+      @RequestBody PaginationRequest paginationRequest) {
     return buildEntityResponse(friendRequestService.getReceivedFriendRequests(paginationRequest));
   }
 }
