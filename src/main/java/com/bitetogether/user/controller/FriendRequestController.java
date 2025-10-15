@@ -48,7 +48,7 @@ public class FriendRequestController {
 
   @GetMapping("/received")
   public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getReceivedFriendRequests(
-      @RequestBody PaginationRequest paginationRequest) {
+      @Valid @RequestBody PaginationRequest paginationRequest) {
     return buildEntityResponse(friendRequestService.getReceivedFriendRequests(paginationRequest));
   }
 }
