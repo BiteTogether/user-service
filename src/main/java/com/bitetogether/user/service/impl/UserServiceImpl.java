@@ -12,8 +12,12 @@ import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
+import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
+import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.exception.ErrorCode;
@@ -22,6 +26,7 @@ import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -93,10 +98,10 @@ public class UserServiceImpl implements UserService {
   @Override
   public ApiResponse<UserDetailsResponse> getCurrentUser() {
     Long currentUserId = getCurrentUserId();
-
     User currentUser = userHelper.findUserById(currentUserId);
 
     UserDetailsResponse userDetailsResponse = userMapper.toUserDetailsResponse(currentUser);
+    userDetailsResponse.setFriendsCount(currentUser.getFriends().size());
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
@@ -105,15 +110,17 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<UserDetailsResponse> getUserById(Long id) {
+  public ApiResponse<UserGetByIdResponse> getUserById(Long id) {
     User user = userHelper.findUserById(id);
 
-    UserDetailsResponse userDetailsResponse = userMapper.toUserDetailsResponse(user);
+    UserGetByIdResponse userGetByIdResponse = userMapper.toUserGetByIdResponse(user);
+
+    enrichWithFriendStatus(userGetByIdResponse, user);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
         "User's information has been fetched successfully",
-        userDetailsResponse);
+        userGetByIdResponse);
   }
 
   @Override
@@ -131,6 +138,49 @@ public class UserServiceImpl implements UserService {
             : "Users have been fetched successfully";
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, message, userSearchResponse);
+  }
+
+  @Override
+  public ApiResponse<UserNotificationResponse> getNotificationSettings(Long id) {
+    validateUserAuthorization(id);
+
+    User user = userHelper.findUserById(id);
+
+    UserNotificationResponse settingsRequest = userMapper.toUserNotificationResponse(user);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        "User notification settings fetched successfully",
+        settingsRequest);
+  }
+
+  @Override
+  public ApiResponse<Void> updateNotificationSettings(
+      Long id, UserNotificationSettingsRequest userNotificationSettingsRequest) {
+    validateUserAuthorization(id);
+
+    User user = userHelper.findUserById(id);
+
+    userMapper.updateUserNotificationSettingsFromRequest(userNotificationSettingsRequest, user);
+
+    userHelper.saveUser(user);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS, "User notification settings updated successfully", null);
+  }
+
+  @Override
+  public ApiResponse<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus) {
+    validateUserAuthorization(id);
+
+    User user = userHelper.findUserById(id);
+
+    user.setOnline(userOnlineStatus.isOnline());
+    user.setLastSeen(LocalDateTime.now());
+
+    userHelper.saveUser(user);
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "User has been updated successfully", null);
   }
 
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
@@ -177,6 +227,20 @@ public class UserServiceImpl implements UserService {
   private void handleRole(User newUser) {
     if (newUser.getRole() == null) {
       newUser.setRole(Role.USER.name());
+    }
+  }
+
+  private void enrichWithFriendStatus(UserGetByIdResponse response, User user) {
+    Long currentUserId = getCurrentUserId();
+    User currentUser = userHelper.findUserById(currentUserId);
+
+    if (currentUser.getFriends().contains(user)) {
+      response.setIsFriend(true);
+      response.setIsUserOnline(user.isOnline());
+      LocalDateTime lastSeen = LocalDateTime.now();
+      response.setLastSeenUser(lastSeen);
+    } else {
+      response.setIsFriend(false);
     }
   }
 

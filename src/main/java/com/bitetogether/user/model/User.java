@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -72,4 +73,12 @@ public class User extends BaseEntity {
   @JsonIgnore
   @Builder.Default
   Set<User> friends = new HashSet<>();
+
+  @Column boolean pushNotificationsEnabled = false;
+
+  @Column boolean inAppNotificationsEnabled = false;
+
+  @Column boolean isOnline = false;
+
+  @Column LocalDateTime lastSeen = LocalDateTime.now();
 }

@@ -7,8 +7,12 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_USER
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
+import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
+import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.service.UserService;
@@ -57,7 +61,7 @@ public class UserController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ApiResponse<UserDetailsResponse>> getUserById(@PathVariable Long id) {
+  public ResponseEntity<ApiResponse<UserGetByIdResponse>> getUserById(@PathVariable Long id) {
     return buildEntityResponse(userService.getUserById(id));
   }
 
@@ -65,5 +69,25 @@ public class UserController {
   public ResponseEntity<ApiResponse<UserSearchResponse>> searchUsersWithFilter(
       @Valid @RequestBody UserSearchRequest userSearchRequest) {
     return buildEntityResponse(userService.searchUsersWithFilter(userSearchRequest));
+  }
+
+  @GetMapping("/{id}/notification-settings")
+  public ResponseEntity<ApiResponse<UserNotificationResponse>> getNotificationSettings(
+      @PathVariable Long id) {
+    return buildEntityResponse(userService.getNotificationSettings(id));
+  }
+
+  @PutMapping("/{id}/notification-settings")
+  public ResponseEntity<ApiResponse<Void>> updateNotificationSettings(
+      @PathVariable Long id,
+      @Valid @RequestBody UserNotificationSettingsRequest userNotificationSettingsRequest) {
+    return buildEntityResponse(
+        userService.updateNotificationSettings(id, userNotificationSettingsRequest));
+  }
+
+  @PutMapping("/{id}/online")
+  public ResponseEntity<ApiResponse<Void>> setUserOnlineStatus(
+      @PathVariable Long id, @Valid @RequestBody UserOnlineStatus userOnlineStatus) {
+    return buildEntityResponse(userService.setUserOnline(id, userOnlineStatus));
   }
 }
