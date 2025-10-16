@@ -25,6 +25,8 @@ public enum ErrorCode implements BaseErrorCode {
 
   REFRESH_TOKEN_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Refresh token is not found or expired"),
   DEVICE_TOKEN_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Device token is not found or expired"),
+  REFRESH_TOKEN_ERROR(
+      ApiResponseStatus.INTERNAL_SERVER_ERROR, "Error occurred during refresh token cleanup"),
 
   INVALID_FRIEND_REQUEST(
       ApiResponseStatus.BAD_REQUEST, "You can't send friend request to yourself"),
