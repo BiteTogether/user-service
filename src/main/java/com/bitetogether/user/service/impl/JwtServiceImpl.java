@@ -79,6 +79,7 @@ public class JwtServiceImpl implements JwtService {
         .setClaims(claims)
         .setSubject(subject)
         .setId(jti)
+        .setIssuer("bitetogether.com")
         .setIssuedAt(toDate(issuedAt))
         .setExpiration(toDate(expiresAt))
         .signWith(getSignKey(), SignatureAlgorithm.HS256)
