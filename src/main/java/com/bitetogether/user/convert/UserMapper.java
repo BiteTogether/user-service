@@ -3,7 +3,10 @@ package com.bitetogether.user.convert;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
+import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.model.User;
@@ -21,9 +24,16 @@ public interface UserMapper {
 
   UserDetailsResponse toUserDetailsResponse(User user);
 
+  UserGetByIdResponse toUserGetByIdResponse(User user);
+
   void updateUserFromRequest(UpdateUserRequest updateUserRequest, @MappingTarget User user);
 
   FriendResponse toFriendResponse(User user);
 
   UserSearchResponse toUserSearchResponse(User user);
+
+  UserNotificationResponse toUserNotificationResponse(User user);
+
+  void updateUserNotificationSettingsFromRequest(
+      UserNotificationSettingsRequest userNotificationSettingsRequest, @MappingTarget User user);
 }
