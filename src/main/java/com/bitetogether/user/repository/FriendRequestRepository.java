@@ -18,4 +18,6 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
   Page<FriendRequest> findBySenderId(Long senderId, Pageable pageable);
 
   Page<FriendRequest> findByReceiverId(Long receiverId, Pageable pageable);
+
+  Optional<FriendRequest> findBySenderAndReceiver(User sender, User receiver);
 }

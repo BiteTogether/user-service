@@ -16,10 +16,12 @@ import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UserGetByIdItem;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
@@ -44,6 +46,7 @@ public class UserServiceImpl implements UserService {
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
   UserHelper userHelper;
+  FriendRequestServiceImpl friendRequestService;
 
   private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{9,11}$");
   private static final Pattern EMAIL_PATTERN =
@@ -234,14 +237,46 @@ public class UserServiceImpl implements UserService {
     Long currentUserId = getCurrentUserId();
     User currentUser = userHelper.findUserById(currentUserId);
 
+    UserGetByIdItem friendItem = new UserGetByIdItem();
+
     if (currentUser.getFriends().contains(user)) {
-      response.setIsFriend(true);
-      response.setIsUserOnline(user.isOnline());
-      LocalDateTime lastSeen = LocalDateTime.now();
-      response.setLastSeenUser(lastSeen);
-    } else {
-      response.setIsFriend(false);
+      setFriendStatusFields(friendItem, user);
+      response.setFriendItem(friendItem);
+      return;
     }
+
+    FriendRequestType friendRequestType =
+        friendRequestService.getFriendRequestTypeBetweenUsers(currentUser, user);
+
+    switch (friendRequestType) {
+      case SENT -> setSentFriendRequestFields(friendItem, currentUser, user);
+      case RECEIVED -> setReceivedFriendRequestFields(friendItem, currentUser, user);
+      default -> setStrangerStatusFields(friendItem);
+    }
+    response.setFriendItem(friendItem);
+  }
+
+  private void setFriendStatusFields(UserGetByIdItem response, User user) {
+    response.setIsFriend(true);
+    response.setIsUserOnline(user.isOnline());
+    response.setLastSeenUser(user.getLastSeen());
+  }
+
+  private void setSentFriendRequestFields(UserGetByIdItem response, User currentUser, User user) {
+    response.setHasFriendRequestSent(true);
+    response.setFriendRequestId(friendRequestService.getFriendRequestSentId(currentUser, user));
+  }
+
+  private void setReceivedFriendRequestFields(
+      UserGetByIdItem response, User currentUser, User user) {
+    response.setHasFriendRequestReceived(true);
+    response.setFriendRequestId(friendRequestService.getFriendRequestReceivedId(currentUser, user));
+  }
+
+  private void setStrangerStatusFields(UserGetByIdItem response) {
+    response.setIsFriend(false);
+    response.setHasFriendRequestSent(false);
+    response.setHasFriendRequestReceived(false);
   }
 
   private User searchUser(String keyword) {

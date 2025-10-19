@@ -11,6 +11,7 @@ import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
+import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
@@ -208,5 +209,34 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     }
 
     return friendRequest;
+  }
+
+  public FriendRequestType getFriendRequestTypeBetweenUsers(User sender, User receiver) {
+    boolean sentRequestExists = friendRequestRepository.existsBySenderAndReceiver(sender, receiver);
+    if (sentRequestExists) {
+      return FriendRequestType.SENT;
+    }
+
+    boolean receivedRequestExists =
+        friendRequestRepository.existsBySenderAndReceiver(receiver, sender);
+    if (receivedRequestExists) {
+      return FriendRequestType.RECEIVED;
+    }
+
+    return FriendRequestType.NONE;
+  }
+
+  public Long getFriendRequestSentId(User sender, User receiver) {
+    return friendRequestRepository
+        .findBySenderAndReceiver(sender, receiver)
+        .map(FriendRequest::getId)
+        .orElse(null);
+  }
+
+  public Long getFriendRequestReceivedId(User receiver, User sender) {
+    return friendRequestRepository
+        .findBySenderAndReceiver(sender, receiver)
+        .map(FriendRequest::getId)
+        .orElse(null);
   }
 }

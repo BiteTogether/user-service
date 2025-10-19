@@ -17,7 +17,5 @@ public class UserGetByIdResponse {
   private String avatar;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
-  private Boolean isFriend;
-  private Boolean isUserOnline = null;
-  private LocalDateTime lastSeenUser = null;
+  private UserGetByIdItem friendItem;
 }
