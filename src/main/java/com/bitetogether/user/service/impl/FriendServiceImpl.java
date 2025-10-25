@@ -80,7 +80,7 @@ public class FriendServiceImpl implements FriendService {
     return friendUser;
   }
 
-  void deleteFriendship(User user1, User user2) {
+  private void deleteFriendship(User user1, User user2) {
     user1.getFriends().remove(user2);
     user2.getFriends().remove(user1);
 
