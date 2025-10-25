@@ -24,7 +24,6 @@ import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.AuthService;
 import com.bitetogether.user.service.JwtService;
 import com.bitetogether.user.service.UserService;
-import com.bitetogether.user.util.UserHelper;
 import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +38,6 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthServiceImpl implements AuthService {
   UserService userService;
-  UserHelper userHelper;
   UserRepository userRepository;
   RefreshTokenRepository refreshTokenRepository;
   JwtService jwtService;
@@ -59,6 +57,30 @@ public class AuthServiceImpl implements AuthService {
     return buildApiResponse(ApiResponseStatus.SUCCESS, "Log in successfully", loginResponse);
   }
 
+  private User validateUserLogin(LoginRequest loginRequest) {
+    User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+
+    if (user == null) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_LOGIN);
+    }
+
+    if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_LOGIN);
+    }
+
+    return user;
+  }
+
+  private TokenResponse createTokenResponse(String accessToken, String refreshToken) {
+    return TokenResponse.builder()
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .expiresIn(jwtProperties.getExpiration())
+        .refreshExpiresIn(jwtProperties.getRefreshExpiration())
+        .sessionState(java.util.UUID.randomUUID().toString())
+        .build();
+  }
+
   @Override
   public ApiResponse<Void> logOut() {
     Long currentUserId = getCurrentUserId();
@@ -71,6 +93,19 @@ public class AuthServiceImpl implements AuthService {
     refreshTokenRepository.delete(refreshToken);
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "Log out successfully", null);
+  }
+
+  private RefreshToken validateRefreshToken(String refreshJti, Long currentUserId) {
+    RefreshToken refreshToken =
+        refreshTokenRepository
+            .findById(refreshJti)
+            .orElseThrow(() -> new AppException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
+
+    if (!Objects.equals(refreshToken.getUser().getId(), currentUserId)) {
+      throw new AppException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
+    }
+
+    return refreshToken;
   }
 
   @Override
@@ -86,6 +121,20 @@ public class AuthServiceImpl implements AuthService {
     RefreshTokenReponse response = createRefreshTokenResponse(newAccessToken);
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "Token refreshed successfully", response);
+  }
+
+  private User findUserByEmail(String email) {
+    return userRepository
+        .findByEmail(email)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+  }
+
+  private RefreshTokenReponse createRefreshTokenResponse(String accessToken) {
+    return RefreshTokenReponse.builder()
+        .accessToken(accessToken)
+        .expiresIn(jwtProperties.getExpiration())
+        .sessionState(java.util.UUID.randomUUID().toString())
+        .build();
   }
 
   @Override
