@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -16,7 +17,8 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
 
   boolean existsBySenderAndReceiver(User sender, User receiver);
 
-  Optional<FriendRequest> findById(Long id);
+  @NonNull
+  Optional<FriendRequest> findById(@NonNull Long id);
 
   Page<FriendRequest> findBySenderId(Long senderId, Pageable pageable);
 

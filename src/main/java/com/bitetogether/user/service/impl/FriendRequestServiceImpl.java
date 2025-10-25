@@ -56,6 +56,29 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         ApiResponseStatus.SUCCESS, "Friend request sent successfully", friendRequestDb.getId());
   }
 
+  private void validateCreateFriendRequest(Long senderId, Long receiverId) {
+    if (senderId.equals(receiverId)) {
+      throw new AppException(ErrorCode.INVALID_FRIEND_REQUEST);
+    }
+
+    User sender = userHelper.findUserById(senderId);
+    User receiver = userHelper.findUserById(receiverId);
+
+    boolean isFriended =
+        sender.getFriends().contains(receiver) || receiver.getFriends().contains(sender);
+    if (isFriended) {
+      throw new AppException(ErrorCode.ALREADY_FRIENDS);
+    }
+
+    boolean existingRequest =
+        friendRequestRepository.existsBySenderAndReceiver(sender, receiver)
+            || friendRequestRepository.existsBySenderAndReceiver(receiver, sender);
+
+    if (existingRequest) {
+      throw new AppException(ErrorCode.FRIEND_REQUEST_ALREADY_EXISTS);
+    }
+  }
+
   @Override
   @Transactional
   public ApiResponse<Void> acceptFriendRequest(Long id) {
@@ -67,6 +90,34 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "Friend request accepted successfully", null);
+  }
+
+  private FriendRequest validateAcceptFriendRequest(Long requestId) {
+    FriendRequest friendRequest =
+        friendRequestRepository
+            .findById(requestId)
+            .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
+
+    if (!friendRequest.getReceiver().getId().equals(getCurrentUserId())) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
+    }
+
+    return friendRequest;
+  }
+
+  private void establishFriendship(FriendRequest friendRequest) {
+    User sender = friendRequest.getSender();
+    User receiver = friendRequest.getReceiver();
+
+    sender.getFriends().add(receiver);
+    receiver.getFriends().add(sender);
+
+    userHelper.saveUser(sender);
+    userHelper.saveUser(receiver);
+  }
+
+  private void deleteFriendRequestHelper(Long id) {
+    friendRequestRepository.deleteById(id);
   }
 
   @Override
@@ -84,6 +135,20 @@ public class FriendRequestServiceImpl implements FriendRequestService {
             : "Friend request rejected successfully";
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, message, null);
+  }
+
+  private FriendRequest validateDeleteFriendRequest(Long requestId, Long currentUserId) {
+    FriendRequest friendRequest =
+        friendRequestRepository
+            .findById(requestId)
+            .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
+
+    if (!friendRequest.getSender().getId().equals(currentUserId)
+        && !friendRequest.getReceiver().getId().equals(currentUserId)) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
+    }
+
+    return friendRequest;
   }
 
   @Override
@@ -146,71 +211,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         friendRequestPage.getTotalElements());
   }
 
-  private void validateCreateFriendRequest(Long senderId, Long receiverId) {
-    if (senderId.equals(receiverId)) {
-      throw new AppException(ErrorCode.INVALID_FRIEND_REQUEST);
-    }
-
-    User sender = userHelper.findUserById(senderId);
-    User receiver = userHelper.findUserById(receiverId);
-
-    boolean isFriended =
-        sender.getFriends().contains(receiver) || receiver.getFriends().contains(sender);
-    if (isFriended) {
-      throw new AppException(ErrorCode.ALREADY_FRIENDS);
-    }
-
-    boolean existingRequest =
-        friendRequestRepository.existsBySenderAndReceiver(sender, receiver)
-            || friendRequestRepository.existsBySenderAndReceiver(receiver, sender);
-
-    if (existingRequest) {
-      throw new AppException(ErrorCode.FRIEND_REQUEST_ALREADY_EXISTS);
-    }
-  }
-
-  private FriendRequest validateAcceptFriendRequest(Long requestId) {
-    FriendRequest friendRequest =
-        friendRequestRepository
-            .findById(requestId)
-            .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
-
-    if (!friendRequest.getReceiver().getId().equals(getCurrentUserId())) {
-      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
-    }
-
-    return friendRequest;
-  }
-
-  private void establishFriendship(FriendRequest friendRequest) {
-    User sender = friendRequest.getSender();
-    User receiver = friendRequest.getReceiver();
-
-    sender.getFriends().add(receiver);
-    receiver.getFriends().add(sender);
-
-    userHelper.saveUser(sender);
-    userHelper.saveUser(receiver);
-  }
-
-  private void deleteFriendRequestHelper(Long id) {
-    friendRequestRepository.deleteById(id);
-  }
-
-  private FriendRequest validateDeleteFriendRequest(Long requestId, Long currentUserId) {
-    FriendRequest friendRequest =
-        friendRequestRepository
-            .findById(requestId)
-            .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
-
-    if (!friendRequest.getSender().getId().equals(currentUserId)
-        && !friendRequest.getReceiver().getId().equals(currentUserId)) {
-      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
-    }
-
-    return friendRequest;
-  }
-
+  // Utility methods used by other services
   public FriendRequestType getFriendRequestTypeBetweenUsers(User sender, User receiver) {
     boolean sentRequestExists = friendRequestRepository.existsBySenderAndReceiver(sender, receiver);
     if (sentRequestExists) {
