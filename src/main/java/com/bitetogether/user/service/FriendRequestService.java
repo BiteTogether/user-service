@@ -2,7 +2,6 @@ package com.bitetogether.user.service;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 
 public interface FriendRequestService {
@@ -12,9 +11,7 @@ public interface FriendRequestService {
 
   ApiResponse<String> deleteFriendRequest(Long id);
 
-  ApiResponsePagination<FriendRequestResponse> getSentFriendRequests(
-      PaginationRequest paginationRequest);
+  ApiResponsePagination<FriendRequestResponse> getSentFriendRequests(int page, int size);
 
-  ApiResponsePagination<FriendRequestResponse> getReceivedFriendRequests(
-      PaginationRequest paginationRequest);
+  ApiResponsePagination<FriendRequestResponse> getReceivedFriendRequests(int page, int size);
 }
