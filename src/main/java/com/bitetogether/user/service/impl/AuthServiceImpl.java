@@ -1,14 +1,14 @@
 package com.bitetogether.user.service.impl;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
-import static com.bitetogether.common.util.SecurityUtils.getAccessTokenFromHeader;
-import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
+import static com.bitetogether.user.util.AuthUtils.getAccessTokenFromHeader;
+import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 
-import com.bitetogether.common.configuration.security.JwtProperties;
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
+import com.bitetogether.user.configuration.security.JwtProperties;
 import com.bitetogether.user.dto.auth.request.LoginRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;

@@ -1,11 +1,10 @@
 package com.bitetogether.user.service.impl;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
-import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
+import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
@@ -152,43 +151,12 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   }
 
   @Override
-  public ApiResponsePagination<FriendRequestResponse> getSentFriendRequests(
-      PaginationRequest paginationRequest) {
+  public ApiResponsePagination<FriendRequestResponse> getSentFriendRequests(int page, int size) {
     Long currentUserId = getCurrentUserId();
 
-    Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
+    Pageable pageable = PageRequest.of(page, size);
     Page<FriendRequest> friendRequestPage =
         friendRequestRepository.findBySenderId(currentUserId, pageable);
-
-    List<FriendRequestResponse> friendRequestResponses =
-        friendRequestPage.getContent().stream()
-            .map(
-                friendRequest -> {
-                  User sender = friendRequest.getSender();
-                  return FriendRequestResponse.builder()
-                      .id(friendRequest.getId())
-                      .user(userMapper.toFriendResponse(sender))
-                      .build();
-                })
-            .toList();
-
-    return buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        "Sent friend requests retrieved successfully",
-        friendRequestResponses,
-        friendRequestPage.getNumber(),
-        friendRequestPage.getTotalPages(),
-        friendRequestPage.getTotalElements());
-  }
-
-  @Override
-  public ApiResponsePagination<FriendRequestResponse> getReceivedFriendRequests(
-      PaginationRequest paginationRequest) {
-    Long currentUserId = getCurrentUserId();
-
-    Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
-    Page<FriendRequest> friendRequestPage =
-        friendRequestRepository.findByReceiverId(currentUserId, pageable);
 
     List<FriendRequestResponse> friendRequestResponses =
         friendRequestPage.getContent().stream()
@@ -204,6 +172,36 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
+        "Sent friend requests retrieved successfully",
+        friendRequestResponses,
+        friendRequestPage.getNumber(),
+        friendRequestPage.getTotalPages(),
+        friendRequestPage.getTotalElements());
+  }
+
+  @Override
+  public ApiResponsePagination<FriendRequestResponse> getReceivedFriendRequests(
+      int page, int size) {
+    Long currentUserId = getCurrentUserId();
+
+    Pageable pageable = PageRequest.of(page, size);
+    Page<FriendRequest> friendRequestPage =
+        friendRequestRepository.findByReceiverId(currentUserId, pageable);
+
+    List<FriendRequestResponse> friendRequestResponses =
+        friendRequestPage.getContent().stream()
+            .map(
+                friendRequest -> {
+                  User sender = friendRequest.getSender();
+                  return FriendRequestResponse.builder()
+                      .id(friendRequest.getId())
+                      .user(userMapper.toFriendResponse(sender))
+                      .build();
+                })
+            .toList();
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS,
         "Received friend requests retrieved successfully",
         friendRequestResponses,
         friendRequestPage.getNumber(),
@@ -211,7 +209,6 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         friendRequestPage.getTotalElements());
   }
 
-  // Utility methods used by other services
   public FriendRequestType getFriendRequestTypeBetweenUsers(User sender, User receiver) {
     boolean sentRequestExists = friendRequestRepository.existsBySenderAndReceiver(sender, receiver);
     if (sentRequestExists) {

@@ -5,14 +5,10 @@ FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-# Copy toàn bộ project (bao gồm pom.xml, src/, v.v…)
-# Giả định rằng thư viện `common-service` đã được:
-#   ✅ cài sẵn vào local MAVEN (mvn install)
-#   ✅ HOẶC copy sẵn vào Maven repository cache dưới dạng .jar/.pom
 COPY pom.xml .
 COPY src ./src
 
-ARG COMMON_VERSION=0.0.1-SNAPSHOT
+ARG COMMON_VERSION=0.0.2-SNAPSHOT
 COPY libs/common-service-${COMMON_VERSION}.jar /tmp/common-service.jar
 
 RUN mvn -B org.apache.maven.plugins:maven-install-plugin:3.1.0:install-file \

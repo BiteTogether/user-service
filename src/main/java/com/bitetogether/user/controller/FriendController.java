@@ -1,24 +1,24 @@
 package com.bitetogether.user.controller;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.service.FriendService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,8 +35,9 @@ public class FriendController {
           "Retrieves a paginated list of all friends for the currently authenticated user")
   @GetMapping
   public ResponseEntity<ApiResponsePagination<FriendResponse>> getFriendsList(
-      @Valid @RequestBody PaginationRequest paginationRequest) {
-    return buildEntityResponse(friendService.getFriendsList(paginationRequest));
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
+    return buildEntityResponse(friendService.getFriendsList(page, size));
   }
 
   @Operation(

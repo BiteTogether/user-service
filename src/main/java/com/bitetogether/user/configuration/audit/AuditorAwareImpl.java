@@ -1,6 +1,6 @@
 package com.bitetogether.user.configuration.audit;
 
-import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
+import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;

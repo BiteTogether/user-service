@@ -1,12 +1,11 @@
 package com.bitetogether.user.service.impl;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
-import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
-import static com.bitetogether.common.util.SecurityUtils.hasRole;
+import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
+import static com.bitetogether.user.util.AuthUtils.hasRole;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
@@ -38,10 +37,10 @@ public class FriendServiceImpl implements FriendService {
   UserRepository userRepository;
 
   @Override
-  public ApiResponsePagination<FriendResponse> getFriendsList(PaginationRequest paginationRequest) {
+  public ApiResponsePagination<FriendResponse> getFriendsList(int page, int size) {
     Long currentUserId = getCurrentUserId();
 
-    Pageable pageable = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
+    Pageable pageable = PageRequest.of(page, size);
     Page<User> friendPage = userRepository.getFriendsByUserId(currentUserId, pageable);
 
     List<FriendResponse> friends = friendPage.stream().map(userMapper::toFriendResponse).toList();

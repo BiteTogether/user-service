@@ -1,24 +1,24 @@
 package com.bitetogether.user.controller;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND_REQUEST;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.service.FriendRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -64,8 +64,9 @@ public class FriendRequestController {
           "Retrieves a paginated list of all friend requests sent by the authenticated user that are still pending")
   @GetMapping("/sent")
   public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getSentFriendRequests(
-      @Valid @RequestBody PaginationRequest paginationRequest) {
-    return buildEntityResponse(friendRequestService.getSentFriendRequests(paginationRequest));
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
+    return buildEntityResponse(friendRequestService.getSentFriendRequests(page, size));
   }
 
   @Operation(
@@ -74,7 +75,8 @@ public class FriendRequestController {
           "Retrieves a paginated list of all pending friend requests received by the authenticated user")
   @GetMapping("/received")
   public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getReceivedFriendRequests(
-      @Valid @RequestBody PaginationRequest paginationRequest) {
-    return buildEntityResponse(friendRequestService.getReceivedFriendRequests(paginationRequest));
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
+    return buildEntityResponse(friendRequestService.getReceivedFriendRequests(page, size));
   }
 }
