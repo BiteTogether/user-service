@@ -7,7 +7,7 @@ import static com.bitetogether.common.util.Constants.CLAIM_ROLE;
 import static com.bitetogether.common.util.Constants.CLAIM_USER_ID;
 import static com.bitetogether.common.util.Constants.CLAIM_USER_NAME;
 
-import com.bitetogether.common.configuration.security.JwtProperties;
+import com.bitetogether.user.configuration.security.JwtProperties;
 import com.bitetogether.user.model.RefreshToken;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.RefreshTokenRepository;

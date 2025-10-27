@@ -1,8 +1,8 @@
 package com.bitetogether.user.service.impl;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
-import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
-import static com.bitetogether.common.util.SecurityUtils.hasRole;
+import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
+import static com.bitetogether.user.util.AuthUtils.hasRole;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
