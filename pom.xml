@@ -17,7 +17,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <common-service.version>0.0.2-SNAPSHOT</common-service.version>
+        <common-service.version>0.0.3-SNAPSHOT</common-service.version>
         <lombok.version>1.18.38</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <spotless.version>2.46.1</spotless.version>
