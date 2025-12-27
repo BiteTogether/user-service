@@ -8,7 +8,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 
-ARG COMMON_VERSION=0.0.2-SNAPSHOT
+ARG COMMON_VERSION=0.0.4-SNAPSHOT
 COPY libs/common-service-${COMMON_VERSION}.jar /tmp/common-service.jar
 
 RUN mvn -B org.apache.maven.plugins:maven-install-plugin:3.1.0:install-file \
