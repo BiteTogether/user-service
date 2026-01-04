@@ -11,6 +11,7 @@ import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
+import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
@@ -20,6 +21,8 @@ import com.bitetogether.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -91,6 +95,15 @@ public class UserController {
   public ResponseEntity<ApiResponse<UserGetByIdResponse>> getUserById(
       @PathVariable @ValidLongId Long id) {
     return buildEntityResponse(userService.getUserById(id));
+  }
+
+  @Operation(
+      summary = "Get list of user details",
+      description = "Retrieves detailed information for a list of users based on their IDs")
+  @GetMapping
+  public ResponseEntity<ApiResponse<ListUserDetailsResponse>> getListUserDetails(
+      @RequestParam List<@Positive Long> userIds) {
+    return buildEntityResponse(userService.getListUser(userIds));
   }
 
   @Operation(
