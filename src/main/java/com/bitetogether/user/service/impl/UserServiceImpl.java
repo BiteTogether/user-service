@@ -15,6 +15,7 @@ import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
+import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdItem;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
@@ -32,6 +33,7 @@ import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
@@ -311,8 +313,29 @@ public class UserServiceImpl implements UserService {
 
     Long currentUserId = getCurrentUserId();
 
-    if (!currentUserId.equals(id)) {
+    if (currentUserId == null || !currentUserId.equals(id)) {
       throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
+  }
+
+  @Override
+  public ApiResponse<ListUserDetailsResponse> getListUser(List<Long> userIds) {
+    Long currentUserId = getCurrentUserId();
+
+    if (!userIds.contains(currentUserId)) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
+    }
+
+    List<User> users = userRepository.findAllById(userIds);
+    List<UserDetailsResponse> response =
+        users.stream().map(userMapper::toUserDetailsResponse).toList();
+
+    ListUserDetailsResponse listUserDetailsResponse = new ListUserDetailsResponse();
+    listUserDetailsResponse.setUsers(response);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        "List users have been fetched successfully",
+        listUserDetailsResponse);
   }
 }
