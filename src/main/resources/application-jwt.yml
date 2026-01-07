@@ -1,0 +1,5 @@
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:your-secret-key-here-make-it-at-least-256-bits-long-for-security}
+    expiration: ${JWT_EXPIRATION:900}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:86400}

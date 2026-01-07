@@ -1,0 +1,11 @@
+sonar:
+  projectKey: ${SONAR_PROJECT_KEY}
+  projectName: ${SONAR_PROJECT_NAME}
+  projectVersion: ${SONAR_PROJECT_VERSION}
+  sources: src/main/java
+  tests:  src/test/java
+  java:
+    binaries: target/classes
+  host:
+    url: ${SONAR_HOST_URL}
+  login: ${SONAR_TOKEN}
