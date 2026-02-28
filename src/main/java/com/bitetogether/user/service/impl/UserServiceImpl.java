@@ -42,6 +42,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
@@ -55,6 +56,7 @@ public class UserServiceImpl implements UserService {
   FriendRequestServiceImpl friendRequestService;
   FriendRequestRepository friendRequestRepository;
   RefreshTokenRepository refreshTokenRepository;
+  FirebaseStorageServiceImpl firebaseStorageService;
 
   private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{9,11}$");
   private static final Pattern EMAIL_PATTERN =
@@ -337,5 +339,69 @@ public class UserServiceImpl implements UserService {
         ApiResponseStatus.SUCCESS,
         "List users have been fetched successfully",
         listUserDetailsResponse);
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<String> uploadAvatar(Long userId, MultipartFile file) {
+    Long currentUserId = getCurrentUserId();
+
+    // Check if user is updating their own avatar or has admin role
+    if (!currentUserId.equals(userId) && !hasRole(Role.ADMIN.name())) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
+    }
+
+    // Find user
+    User user = userHelper.findUserById(userId);
+
+    // Delete old avatar if exists
+    if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+      firebaseStorageService.deleteFile(user.getAvatar());
+    }
+
+    // Upload new avatar
+    String avatarUrl = firebaseStorageService.uploadAvatar(file, userId);
+
+    // Update user avatar
+    user.setAvatar(avatarUrl);
+    userRepository.save(user);
+
+    log.info("Avatar uploaded successfully for user {}", userId);
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "Avatar uploaded successfully", avatarUrl);
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<Void> deleteAvatar(Long userId) {
+    Long currentUserId = getCurrentUserId();
+
+    // Check if user is deleting their own avatar or has admin role
+    if (!currentUserId.equals(userId) && !hasRole(Role.ADMIN.name())) {
+      throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
+    }
+
+    // Find user
+    User user = userHelper.findUserById(userId);
+
+    // Check if user has avatar
+    if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
+      throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+    }
+
+    // Delete avatar from Firebase Storage
+    boolean deleted = firebaseStorageService.deleteFile(user.getAvatar());
+
+    if (!deleted) {
+      log.warn("Failed to delete avatar from Firebase Storage for user {}", userId);
+    }
+
+    // Remove avatar URL from user
+    user.setAvatar(null);
+    userRepository.save(user);
+
+    log.info("Avatar deleted successfully for user {}", userId);
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "Avatar deleted successfully", null);
   }
 }

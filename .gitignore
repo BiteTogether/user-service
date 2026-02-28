@@ -41,5 +41,10 @@ build/
 .env.production
 .env.staging
 
+# Firebase credentials - DO NOT COMMIT
+src/main/resources/config/*-firebase-adminsdk-*.json
+*firebase-service-account.json
+firebase-adminsdk-*.json
+
 github_token.txt
 github_username.txt
