@@ -32,6 +32,14 @@ public enum ErrorCode implements BaseErrorCode {
       ApiResponseStatus.BAD_REQUEST, "You can't send friend request to yourself"),
   FRIEND_REQUEST_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Friend request not found"),
   FRIEND_REQUEST_ALREADY_EXISTS(ApiResponseStatus.CONFLICT, "Friend request already exists"),
+
+  // File upload errors
+  FILE_EMPTY(ApiResponseStatus.BAD_REQUEST, "File is empty"),
+  FILE_TOO_LARGE(ApiResponseStatus.BAD_REQUEST, "File size exceeds maximum limit (5MB)"),
+  INVALID_FILE_TYPE(ApiResponseStatus.BAD_REQUEST, "Invalid file type. Only images are allowed"),
+  FILE_UPLOAD_ERROR(ApiResponseStatus.INTERNAL_SERVER_ERROR, "Error occurred during file upload"),
+  FILE_DELETE_ERROR(ApiResponseStatus.INTERNAL_SERVER_ERROR, "Error occurred during file deletion"),
+  AVATAR_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Avatar not found"),
   ;
 
   ApiResponse<Void> response;

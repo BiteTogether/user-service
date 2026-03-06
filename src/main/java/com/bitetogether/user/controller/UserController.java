@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -146,5 +147,24 @@ public class UserController {
   public ResponseEntity<ApiResponse<Void>> setUserOnlineStatus(
       @PathVariable @ValidLongId Long id, @RequestBody @Valid UserOnlineStatus userOnlineStatus) {
     return buildEntityResponse(userService.setUserOnline(id, userOnlineStatus));
+  }
+
+  @Operation(
+      summary = "Upload user avatar",
+      description =
+          "Uploads a new avatar image for the specified user. The image will be stored in Firebase Storage and the URL will be saved to the user profile. Supports JPEG, PNG, GIF, and WebP formats with a maximum size of 5MB")
+  @PostMapping(value = "/{id}/avatar", consumes = "multipart/form-data")
+  public ResponseEntity<ApiResponse<String>> uploadAvatar(
+      @PathVariable @ValidLongId Long id, @RequestParam("file") MultipartFile file) {
+    return buildEntityResponse(userService.uploadAvatar(id, file));
+  }
+
+  @Operation(
+      summary = "Delete user avatar",
+      description =
+          "Deletes the avatar image of the specified user. The image will be removed from Firebase Storage and the avatar URL will be cleared from the user profile")
+  @DeleteMapping("/{id}/avatar")
+  public ResponseEntity<ApiResponse<Void>> deleteAvatar(@PathVariable @ValidLongId Long id) {
+    return buildEntityResponse(userService.deleteAvatar(id));
   }
 }

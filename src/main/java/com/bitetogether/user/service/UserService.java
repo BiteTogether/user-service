@@ -13,6 +13,7 @@ import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
   ApiResponse<Long> createUser(CreateUserRequest createUserRequest);
@@ -35,4 +36,8 @@ public interface UserService {
   ApiResponse<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus);
 
   ApiResponse<ListUserDetailsResponse> getListUser(List<Long> request);
+
+  ApiResponse<String> uploadAvatar(Long userId, MultipartFile file);
+
+  ApiResponse<Void> deleteAvatar(Long userId);
 }
