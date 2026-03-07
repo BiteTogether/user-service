@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -64,6 +65,10 @@ public class User extends BaseEntity {
 
   @Column(name = "role", nullable = false)
   String role;
+
+  @Version
+  @Column(name = "version")
+  Long version;
 
   @ManyToMany
   @JoinTable(

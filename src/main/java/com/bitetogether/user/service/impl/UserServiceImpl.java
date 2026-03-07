@@ -22,12 +22,15 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.event.UserCreatedEvent;
+import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
@@ -55,6 +58,7 @@ public class UserServiceImpl implements UserService {
   FriendRequestServiceImpl friendRequestService;
   FriendRequestRepository friendRequestRepository;
   RefreshTokenRepository refreshTokenRepository;
+  EventPublisherService eventPublisherService;
 
   private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{9,11}$");
   private static final Pattern EMAIL_PATTERN =
@@ -71,6 +75,9 @@ public class UserServiceImpl implements UserService {
     handleRole(newUser);
 
     User databaseUser = userHelper.saveUser(newUser);
+
+    // Publish user created event to Kafka
+    publishUserCreatedEvent(databaseUser);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "User created successfully", databaseUser.getId());
@@ -113,6 +120,9 @@ public class UserServiceImpl implements UserService {
 
     User updatedUser = userHelper.saveUser(existingUser);
     UserResponse userResponse = userMapper.toUserResponse(updatedUser);
+
+    // Publish user updated event to Kafka
+    publishUserUpdatedEvent(updatedUser, updatedUser.getVersion());
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "User updated successfully", userResponse);
   }
@@ -337,5 +347,39 @@ public class UserServiceImpl implements UserService {
         ApiResponseStatus.SUCCESS,
         "List users have been fetched successfully",
         listUserDetailsResponse);
+  }
+
+  // ==================== KAFKA EVENT PUBLISHERS ====================
+
+  private void publishUserCreatedEvent(User user) {
+    UserCreatedEvent event =
+        UserCreatedEvent.builder()
+            .userId(user.getId())
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .avatar(user.getAvatar())
+            .eventTimestamp(LocalDateTime.now())
+            .version(0L) // Initial version
+            .build();
+
+    eventPublisherService.publishUserCreatedEvent(event);
+  }
+
+  private void publishUserUpdatedEvent(User user, Long version) {
+    UserUpdatedEvent event =
+        UserUpdatedEvent.builder()
+            .userId(user.getId())
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .avatar(user.getAvatar())
+            .eventTimestamp(LocalDateTime.now())
+            .version(version)
+            .build();
+
+    eventPublisherService.publishUserUpdatedEvent(event);
   }
 }
