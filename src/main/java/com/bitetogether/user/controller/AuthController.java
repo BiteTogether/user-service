@@ -4,11 +4,11 @@ import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_AUTH;
 
 import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.user.dto.auth.request.LoginRequest;
+import com.bitetogether.user.dto.auth.request.FirebaseTokenRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
+import com.bitetogether.user.dto.auth.request.RegisterRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
-import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
 import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.service.AuthService;
@@ -30,18 +30,32 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(
     name = "Authentication",
     description =
-        "APIs for user authentication, registration, token management, and device token handling")
+        "APIs for user authentication with Firebase Phone OTP, token management, and device token handling")
 public class AuthController {
   private final AuthService authService;
 
   @Operation(
-      summary = "User login",
+      summary = "Login existing user",
       description =
-          "Authenticates a user with email and password, returns access token and refresh token for subsequent API calls")
+          "Authenticates an existing user using Firebase ID Token (from phone OTP verification). "
+              + "Returns access token and refresh token for subsequent API calls. "
+              + "If user doesn't exist, returns error - user should register first")
   @PostMapping("/login")
-  public ResponseEntity<ApiResponse<TokenResponse>> logIn(
-      @Valid @RequestBody LoginRequest loginRequest) {
-    return buildEntityResponse(authService.logIn(loginRequest));
+  public ResponseEntity<ApiResponse<TokenResponse>> login(
+      @Valid @RequestBody FirebaseTokenRequest firebaseLoginRequest) {
+    return buildEntityResponse(authService.firebaseLogin(firebaseLoginRequest));
+  }
+
+  @Operation(
+      summary = "Register new user",
+      description =
+          "Registers a new user using Firebase ID Token (from phone OTP verification). "
+              + "User can optionally provide username and full name. "
+              + "Returns access token and refresh token after successful registration")
+  @PostMapping("/register")
+  public ResponseEntity<ApiResponse<TokenResponse>> register(
+      @Valid @RequestBody RegisterRequest registerRequest) {
+    return buildEntityResponse(authService.register(registerRequest));
   }
 
   @Operation(
@@ -61,16 +75,6 @@ public class AuthController {
   public ResponseEntity<ApiResponse<RefreshTokenReponse>> refreshToken(
       @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
     return buildEntityResponse(authService.refreshToken(refreshTokenRequest));
-  }
-
-  @Operation(
-      summary = "Register new user",
-      description =
-          "Creates a new user account with the provided information. Returns the newly created user's ID")
-  @PostMapping("/register")
-  public ResponseEntity<ApiResponse<Long>> register(
-      @Valid @RequestBody CreateUserRequest createUserRequest) {
-    return buildEntityResponse(authService.register(createUserRequest));
   }
 
   @Operation(

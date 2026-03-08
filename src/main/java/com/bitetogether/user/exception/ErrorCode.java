@@ -12,11 +12,13 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ErrorCode implements BaseErrorCode {
-  UNAUTHORIZED_LOGIN(ApiResponseStatus.UNAUTHORIZED, "Your username or password is not correct"),
+  INVALID_FIREBASE_TOKEN(ApiResponseStatus.UNAUTHORIZED, "Firebase ID token is invalid or expired"),
   USER_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "User is not found"),
   USER_EXISTED(ApiResponseStatus.CONFLICT, "User is already existed"),
   USERNAME_EXISTED(ApiResponseStatus.CONFLICT, "This username is already existed"),
-  EMAIL_EXISTED(ApiResponseStatus.CONFLICT, "This email is already existed"),
+  INVALID_USERNAME_FORMAT(
+      ApiResponseStatus.BAD_REQUEST,
+      "Username must be 6-20 characters and contain only letters, numbers, dots, and underscores"),
   PHONE_EXISTED(ApiResponseStatus.CONFLICT, "This phone number is already existed"),
   INVALID_KEYWORD(ApiResponseStatus.BAD_REQUEST, "Invalid search keyword"),
 

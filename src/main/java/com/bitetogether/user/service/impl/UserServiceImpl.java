@@ -11,36 +11,41 @@ import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
+import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UpdatePhoneResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdItem;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
+import com.google.firebase.auth.FirebaseToken;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,16 +56,18 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserServiceImpl implements UserService {
   UserRepository userRepository;
   UserMapper userMapper;
-  PasswordEncoder passwordEncoder;
   UserHelper userHelper;
   FriendRequestServiceImpl friendRequestService;
   FriendRequestRepository friendRequestRepository;
   RefreshTokenRepository refreshTokenRepository;
   FirebaseStorageServiceImpl firebaseStorageService;
+  FirebaseAuthService firebaseAuthService;
 
-  private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{9,11}$");
-  private static final Pattern EMAIL_PATTERN =
-      Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+  // Validation constants
+  private static final int USERNAME_MIN_LENGTH = 6;
+  private static final int USERNAME_MAX_LENGTH = 20;
+  private static final String USERNAME_PATTERN = "^[a-zA-Z0-9._]{6,20}$";
+  private static final String PHONE_NUMBER_CLAIM = "phone_number";
 
   @Override
   @Transactional
@@ -69,7 +76,6 @@ public class UserServiceImpl implements UserService {
 
     User newUser = userMapper.toEntity(createUserRequest);
 
-    handlePassword(newUser);
     handleRole(newUser);
 
     User databaseUser = userHelper.saveUser(newUser);
@@ -79,21 +85,16 @@ public class UserServiceImpl implements UserService {
   }
 
   private void validateCreateUserRequest(CreateUserRequest createUserRequest) {
-    String email = createUserRequest.getEmail();
+    String username = createUserRequest.getUsername();
     String phoneNumber = createUserRequest.getPhoneNumber();
 
-    if (email != null && userRepository.existsByEmail(email)) {
-      throw new AppException(ErrorCode.EMAIL_EXISTED);
+    if (username != null && isUsernameTaken(username)) {
+      throw new AppException(ErrorCode.USERNAME_EXISTED);
     }
 
-    if (phoneNumber != null && userRepository.existsByPhoneNumber(phoneNumber)) {
+    if (phoneNumber != null && isPhoneTaken(phoneNumber)) {
       throw new AppException(ErrorCode.PHONE_EXISTED);
     }
-  }
-
-  private void handlePassword(User newUser) {
-    String encodedPassword = passwordEncoder.encode(newUser.getPassword());
-    newUser.setPassword(encodedPassword);
   }
 
   private void handleRole(User newUser) {
@@ -122,10 +123,23 @@ public class UserServiceImpl implements UserService {
   private void validateUpdateUserRequest(UpdateUserRequest updateUserRequest, User existingUser) {
     String newUsername = updateUserRequest.getUsername();
 
-    if (newUsername != null
+    if (isUsernameChangeRequired(newUsername, existingUser)) {
+      validateUsernameForUpdate(newUsername);
+    }
+  }
+
+  private boolean isUsernameChangeRequired(String newUsername, User existingUser) {
+    return newUsername != null
         && !newUsername.trim().isEmpty()
-        && !newUsername.equals(existingUser.getUsername())
-        && userRepository.existsByUsername(newUsername)) {
+        && !newUsername.equals(existingUser.getUsername());
+  }
+
+  private void validateUsernameForUpdate(String username) {
+    if (!isUsernameFormatValid(username)) {
+      throw new AppException(ErrorCode.INVALID_USERNAME_FORMAT);
+    }
+
+    if (isUsernameTaken(username)) {
       throw new AppException(ErrorCode.USERNAME_EXISTED);
     }
   }
@@ -256,13 +270,8 @@ public class UserServiceImpl implements UserService {
   }
 
   private User searchUser(String keyword) {
-    if (PHONE_PATTERN.matcher(keyword).matches()) {
-      return userRepository.findByPhoneNumber(keyword).orElse(null);
-    } else if (EMAIL_PATTERN.matcher(keyword).matches()) {
-      return userRepository.findByEmail(keyword).orElse(null);
-    } else {
-      throw new AppException(ErrorCode.INVALID_KEYWORD);
-    }
+    // Search by username only (not by phone or email for privacy)
+    return userRepository.findByUsername(keyword).orElse(null);
   }
 
   @Override
@@ -347,7 +356,7 @@ public class UserServiceImpl implements UserService {
     Long currentUserId = getCurrentUserId();
 
     // Check if user is updating their own avatar or has admin role
-    if (!currentUserId.equals(userId) && !hasRole(Role.ADMIN.name())) {
+    if (isUserAuthorizedForAction(currentUserId, userId)) {
       throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
 
@@ -355,9 +364,7 @@ public class UserServiceImpl implements UserService {
     User user = userHelper.findUserById(userId);
 
     // Delete old avatar if exists
-    if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
-      firebaseStorageService.deleteFile(user.getAvatar());
-    }
+    deleteOldAvatarIfExists(user);
 
     // Upload new avatar
     String avatarUrl = firebaseStorageService.uploadAvatar(file, userId);
@@ -377,7 +384,7 @@ public class UserServiceImpl implements UserService {
     Long currentUserId = getCurrentUserId();
 
     // Check if user is deleting their own avatar or has admin role
-    if (!currentUserId.equals(userId) && !hasRole(Role.ADMIN.name())) {
+    if (isUserAuthorizedForAction(currentUserId, userId)) {
       throw new AppException(GlobalErrorCode.USER_FORBIDDEN);
     }
 
@@ -385,16 +392,10 @@ public class UserServiceImpl implements UserService {
     User user = userHelper.findUserById(userId);
 
     // Check if user has avatar
-    if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
-      throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
-    }
+    validateUserHasAvatar(user);
 
     // Delete avatar from Firebase Storage
-    boolean deleted = firebaseStorageService.deleteFile(user.getAvatar());
-
-    if (!deleted) {
-      log.warn("Failed to delete avatar from Firebase Storage for user {}", userId);
-    }
+    deleteAvatarFromStorage(user);
 
     // Remove avatar URL from user
     user.setAvatar(null);
@@ -403,5 +404,172 @@ public class UserServiceImpl implements UserService {
     log.info("Avatar deleted successfully for user {}", userId);
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "Avatar deleted successfully", null);
+  }
+
+  @Override
+  public ApiResponse<ValidateUserCriteriaResponse> validateUserCriteria(
+      ValidateUserCriteriaRequest criteria) {
+    boolean isValid;
+    String message;
+
+    switch (criteria.getCriteriaType()) {
+      case USERNAME -> {
+        message = validateUsernameWithDetailedMessage(criteria.getCriteriaValue());
+        isValid = message.contains("valid and available");
+      }
+      case PHONE -> {
+        isValid = isPhoneAvailable(criteria.getCriteriaValue());
+        message = buildPhoneValidationMessage(isValid);
+      }
+      default -> {
+        isValid = false;
+        message = "Invalid criteria type";
+      }
+    }
+
+    ValidateUserCriteriaResponse response =
+        ValidateUserCriteriaResponse.builder().isValid(isValid).validationMessage(message).build();
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, message, response);
+  }
+
+  private String validateUsernameWithDetailedMessage(String username) {
+    if (StringUtils.isEmpty(username)) {
+      return "Username cannot be empty";
+    }
+
+    if (!isUsernameLengthValid(username)) {
+      return String.format(
+          "Username must be between %d and %d characters",
+          USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH);
+    }
+
+    if (!isUsernamePatternValid(username)) {
+      return "Username can only contain letters, numbers, dots (.), and underscores (_)";
+    }
+
+    if (isUsernameTaken(username)) {
+      return "This username is already taken";
+    }
+
+    return "Username is valid and available";
+  }
+
+  private boolean isUsernameFormatValid(String username) {
+    return !StringUtils.isEmpty(username)
+        && isUsernameLengthValid(username)
+        && isUsernamePatternValid(username);
+  }
+
+  private boolean isUsernameLengthValid(String username) {
+    int length = username.length();
+    return length >= USERNAME_MIN_LENGTH && length <= USERNAME_MAX_LENGTH;
+  }
+
+  private boolean isUsernamePatternValid(String username) {
+    return username.matches(USERNAME_PATTERN);
+  }
+
+  private boolean isUsernameTaken(String username) {
+    return userRepository.existsByUsername(username);
+  }
+
+  private boolean isPhoneAvailable(String phoneNumber) {
+    return StringUtils.isNotEmpty(phoneNumber) && !isPhoneTaken(phoneNumber);
+  }
+
+  private boolean isPhoneTaken(String phoneNumber) {
+    return userRepository.existsByPhoneNumber(phoneNumber);
+  }
+
+  private String buildPhoneValidationMessage(boolean isValid) {
+    return isValid ? "Phone number is available" : "Phone number is already registered";
+  }
+
+  private boolean isUserAuthorizedForAction(Long currentUserId, Long targetUserId) {
+    if (currentUserId == null) {
+      return true;
+    }
+    return !currentUserId.equals(targetUserId) && !hasRole(Role.ADMIN.name());
+  }
+
+  private void deleteOldAvatarIfExists(User user) {
+    if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+      firebaseStorageService.deleteFile(user.getAvatar());
+      log.info("Deleted old avatar for user {}", user.getId());
+    }
+  }
+
+  private void validateUserHasAvatar(User user) {
+    if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
+      throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+    }
+  }
+
+  private void deleteAvatarFromStorage(User user) {
+    boolean deleted = firebaseStorageService.deleteFile(user.getAvatar());
+
+    if (!deleted) {
+      log.warn("Failed to delete avatar from Firebase Storage for user {}", user.getId());
+    }
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest) {
+    // Get current authenticated user ID
+    Long userId = getCurrentUserId();
+
+    // Verify Firebase ID Token
+    FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(updatePhoneRequest.getIdToken());
+
+    String newFirebaseUid = decodedToken.getUid();
+    String newPhoneNumber = (String) decodedToken.getClaims().get(PHONE_NUMBER_CLAIM);
+
+    log.info(
+        "Update phone request - User ID: {}, New UID: {}, New Phone: {}",
+        userId,
+        newFirebaseUid,
+        newPhoneNumber);
+
+    // Validate phone number from token
+    if (StringUtils.isEmpty(newPhoneNumber)) {
+      throw new AppException(ErrorCode.INVALID_FIREBASE_TOKEN);
+    }
+
+    // Get current user
+    User user = userHelper.findUserById(userId);
+
+    // Check if new phone is already used by another user
+    validatePhoneNotUsedByOtherUser(newPhoneNumber, userId);
+
+    // Update user's phone and Firebase UID
+    user.setPhoneNumber(newPhoneNumber);
+    user.setFirebaseUid(newFirebaseUid);
+
+    User updatedUser = userRepository.save(user);
+
+    log.info("Phone updated successfully for user {}: {}", userId, newPhoneNumber);
+
+    UpdatePhoneResponse response =
+        UpdatePhoneResponse.builder()
+            .userId(updatedUser.getId())
+            .phoneNumber(updatedUser.getPhoneNumber())
+            .firebaseUid(updatedUser.getFirebaseUid())
+            .build();
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS, "Phone number updated successfully", response);
+  }
+
+  private void validatePhoneNotUsedByOtherUser(String phoneNumber, Long currentUserId) {
+    userRepository
+        .findByPhoneNumber(phoneNumber)
+        .ifPresent(
+            existingUser -> {
+              if (!existingUser.getId().equals(currentUserId)) {
+                throw new AppException(ErrorCode.PHONE_EXISTED);
+              }
+            });
   }
 }
