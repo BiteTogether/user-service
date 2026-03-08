@@ -10,7 +10,7 @@ public interface JwtService {
 
   Date extractExpiration(String token);
 
-  String extractEmail(String token);
+  String extractUsername(String token);
 
   String extractJti(String refreshToken);
 

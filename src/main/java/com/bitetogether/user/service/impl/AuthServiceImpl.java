@@ -9,11 +9,11 @@ import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.user.configuration.security.JwtProperties;
-import com.bitetogether.user.dto.auth.request.LoginRequest;
+import com.bitetogether.user.dto.auth.request.FirebaseTokenRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
+import com.bitetogether.user.dto.auth.request.RegisterRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
-import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
 import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.exception.ErrorCode;
@@ -22,14 +22,15 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.AuthService;
+import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.JwtService;
-import com.bitetogether.user.service.UserService;
+import com.google.firebase.auth.FirebaseToken;
 import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,38 +38,161 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthServiceImpl implements AuthService {
-  UserService userService;
   UserRepository userRepository;
   RefreshTokenRepository refreshTokenRepository;
   JwtService jwtService;
   JwtProperties jwtProperties;
-  PasswordEncoder passwordEncoder;
+  FirebaseAuthService firebaseAuthService;
+
+  private static final String PHONE_NUMBER_CLAIM = "phone_number";
 
   @Override
-  public ApiResponse<TokenResponse> logIn(LoginRequest loginRequest) {
-    User user = validateUserLogin(loginRequest);
+  public ApiResponse<TokenResponse> firebaseLogin(FirebaseTokenRequest firebaseLoginRequest) {
+    // Verify Firebase ID Token
+    FirebaseToken decodedToken =
+        firebaseAuthService.verifyIdToken(firebaseLoginRequest.getIdToken());
 
+    String firebaseUid = decodedToken.getUid();
+    String phoneNumber = (String) decodedToken.getClaims().get(PHONE_NUMBER_CLAIM);
+
+    log.info("Firebase login attempt - UID: {}, Phone: {}", firebaseUid, phoneNumber);
+
+    // Find existing user
+    User user = findExistingUser(firebaseUid, phoneNumber);
+
+    if (user == null) {
+      throw new AppException(ErrorCode.USER_NOT_FOUND);
+    }
+
+    // Update Firebase UID if user was found by phone but doesn't have UID yet
+    if (StringUtils.isEmpty(user.getFirebaseUid())) {
+      user.setFirebaseUid(firebaseUid);
+      user = userRepository.save(user);
+    }
+
+    // Generate JWT tokens
     String refreshTokenJti = java.util.UUID.randomUUID().toString();
     String accessToken = jwtService.generateToken(user, refreshTokenJti);
     String refreshToken = jwtService.generateRefreshToken(user, refreshTokenJti);
 
     TokenResponse loginResponse = createTokenResponse(accessToken, refreshToken);
 
-    return buildApiResponse(ApiResponseStatus.SUCCESS, "Log in successfully", loginResponse);
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "Login successfully", loginResponse);
   }
 
-  private User validateUserLogin(LoginRequest loginRequest) {
-    User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+  @Override
+  public ApiResponse<TokenResponse> register(RegisterRequest registerRequest) {
+    // Verify Firebase ID Token
+    FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(registerRequest.getIdToken());
 
-    if (user == null) {
-      throw new AppException(ErrorCode.UNAUTHORIZED_LOGIN);
+    String firebaseUid = decodedToken.getUid();
+    String phoneNumber = (String) decodedToken.getClaims().get(PHONE_NUMBER_CLAIM);
+
+    log.info("Firebase register attempt - UID: {}, Phone: {}", firebaseUid, phoneNumber);
+
+    // Check if account already exists
+    if (checkAccountExists(firebaseUid, phoneNumber)) {
+      throw new AppException(ErrorCode.USER_EXISTED);
     }
 
-    if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-      throw new AppException(ErrorCode.UNAUTHORIZED_LOGIN);
+    // Create new user
+    User newUser = createUserFromRegisterRequest(firebaseUid, phoneNumber, registerRequest);
+
+    // Generate JWT tokens
+    String refreshTokenJti = java.util.UUID.randomUUID().toString();
+    String accessToken = jwtService.generateToken(newUser, refreshTokenJti);
+    String refreshToken = jwtService.generateRefreshToken(newUser, refreshTokenJti);
+
+    TokenResponse tokenResponse = createTokenResponse(accessToken, refreshToken);
+
+    return buildApiResponse(
+        ApiResponseStatus.SUCCESS, "User registered successfully", tokenResponse);
+  }
+
+  private boolean checkAccountExists(String firebaseUid, String phoneNumber) {
+    // Check by Firebase UID or phone number
+    if (firebaseUid != null
+        && !firebaseUid.isEmpty()
+        && userRepository.findByFirebaseUid(firebaseUid).isPresent()) {
+      return true;
     }
 
-    return user;
+    return phoneNumber != null
+        && !phoneNumber.isEmpty()
+        && userRepository.findByPhoneNumber(phoneNumber).isPresent();
+  }
+
+  private User findExistingUser(String firebaseUid, String phoneNumber) {
+    // Try to find user by Firebase UID first
+    if (firebaseUid != null && !firebaseUid.isEmpty()) {
+      User user = userRepository.findByFirebaseUid(firebaseUid).orElse(null);
+      if (user != null) {
+        log.info("Found existing user by Firebase UID: {}", firebaseUid);
+        return user;
+      }
+    }
+
+    // Try to find user by phone number
+    if (phoneNumber != null && !phoneNumber.isEmpty()) {
+      User user = userRepository.findByPhoneNumber(phoneNumber).orElse(null);
+      if (user != null) {
+        log.info("Found existing user by phone number: {}", phoneNumber);
+        return user;
+      }
+    }
+
+    return null;
+  }
+
+  private User createUserFromRegisterRequest(
+      String firebaseUid, String phoneNumber, RegisterRequest registerRequest) {
+    // Use provided username or generate one
+    String username = registerRequest.getUsername();
+    if (username == null || username.trim().isEmpty()) {
+      username = generateUniqueUsername(firebaseUid);
+    } else {
+      // Validate username is unique
+      if (userRepository.existsByUsername(username)) {
+        throw new AppException(ErrorCode.USERNAME_EXISTED);
+      }
+    }
+
+    // Use provided full name or default to username
+    String fullName = registerRequest.getFullName();
+    if (fullName == null || fullName.trim().isEmpty()) {
+      fullName = username;
+    }
+
+    String defaultPhone =
+        phoneNumber != null && !phoneNumber.isEmpty() ? phoneNumber : "+00000000000"; // Placeholder
+
+    // Create user with Firebase authentication
+    User newUser =
+        User.builder()
+            .firebaseUid(firebaseUid)
+            .username(username)
+            .phoneNumber(defaultPhone)
+            .role(Role.USER.name())
+            .fullName(fullName)
+            .build();
+
+    log.info("Creating new user with username: {}", username);
+    return userRepository.save(newUser);
+  }
+
+  private String generateUniqueUsername(String firebaseUid) {
+    // Generate base username from firebase UID
+    String baseUsername = "user_" + firebaseUid.substring(0, Math.min(8, firebaseUid.length()));
+
+    // Check if username exists, if yes add random suffix
+    String username = baseUsername;
+    int counter = 1;
+    while (userRepository.existsByUsername(username)) {
+      username = baseUsername + "_" + counter;
+      counter++;
+    }
+
+    return username;
   }
 
   private TokenResponse createTokenResponse(String accessToken, String refreshToken) {
@@ -112,8 +236,8 @@ public class AuthServiceImpl implements AuthService {
   public ApiResponse<RefreshTokenReponse> refreshToken(RefreshTokenRequest refreshTokenRequest) {
     String refreshToken = refreshTokenRequest.getRefreshToken();
 
-    String email = jwtService.extractEmail(refreshToken);
-    User user = findUserByEmail(email);
+    String username = jwtService.extractUsername(refreshToken);
+    User user = findUserByUsername(username);
 
     String refreshTokenJti = jwtService.extractJti(refreshToken);
     String newAccessToken = jwtService.generateToken(user, refreshTokenJti);
@@ -123,9 +247,9 @@ public class AuthServiceImpl implements AuthService {
     return buildApiResponse(ApiResponseStatus.SUCCESS, "Token refreshed successfully", response);
   }
 
-  private User findUserByEmail(String email) {
+  private User findUserByUsername(String username) {
     return userRepository
-        .findByEmail(email)
+        .findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
   }
 
@@ -135,12 +259,6 @@ public class AuthServiceImpl implements AuthService {
         .expiresIn(jwtProperties.getExpiration())
         .sessionState(java.util.UUID.randomUUID().toString())
         .build();
-  }
-
-  @Override
-  public ApiResponse<Long> register(CreateUserRequest createUserRequest) {
-    createUserRequest.setRole(Role.USER.name());
-    return userService.createUser(createUserRequest);
   }
 
   @Override

@@ -7,11 +7,14 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_USER
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.validation.ValidLongId;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
+import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UpdatePhoneResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
@@ -166,5 +169,29 @@ public class UserController {
   @DeleteMapping("/{id}/avatar")
   public ResponseEntity<ApiResponse<Void>> deleteAvatar(@PathVariable @ValidLongId Long id) {
     return buildEntityResponse(userService.deleteAvatar(id));
+  }
+
+  @Operation(
+      summary = "Update phone number",
+      description =
+          "Updates the phone number of the specified user using Firebase ID Token (from phone OTP verification). "
+              + "This endpoint verifies the new phone number through Firebase Authentication and updates both the phone number and Firebase UID. "
+              + "The phone number must be unique and verified through OTP")
+  @PutMapping("/phone")
+  public ResponseEntity<ApiResponse<UpdatePhoneResponse>> updatePhone(
+      @RequestBody @Valid UpdatePhoneRequest updatePhoneRequest) {
+    return buildEntityResponse(userService.updatePhone(updatePhoneRequest));
+  }
+
+  @Operation(
+      summary = "Validate user criteria",
+      description =
+          "Validates user input criteria before registration. "
+              + "For USERNAME: Checks format (6-20 chars, letters, numbers, dots, underscores) and availability. "
+              + "For PHONE: Checks if phone number is already registered in the system")
+  @PostMapping("/validate")
+  public ResponseEntity<ApiResponse<Boolean>> validateUserCriteria(
+      @RequestBody @Valid ValidateUserCriteriaRequest criteria) {
+    return buildEntityResponse(userService.validateUserCriteria(criteria));
   }
 }

@@ -39,14 +39,11 @@ public class User extends BaseEntity {
   @Column(name = "id", updatable = false, nullable = false)
   Long id;
 
-  @Column(name = "username", nullable = false)
+  @Column(name = "username", unique = true, nullable = false)
   String username;
 
-  @Column(name = "email", unique = true, nullable = false)
-  String email;
-
-  @Column(name = "password", nullable = false)
-  String password;
+  @Column(name = "firebase_uid", unique = true, nullable = false)
+  String firebaseUid;
 
   @Column(name = "fullname")
   String fullName;
@@ -54,7 +51,6 @@ public class User extends BaseEntity {
   @Column(name = "phone", unique = true, nullable = false)
   String phoneNumber;
 
-  @Column(name = "avatar")
   String avatar = null;
 
   @Column(name = "food_preferences")
