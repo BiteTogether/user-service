@@ -15,8 +15,4 @@ public interface JwtService {
   String extractJti(String refreshToken);
 
   String extractRefreshJti(String accessToken);
-
-  boolean isTokenValid(String token);
-
-  boolean isTokenExpired(String token);
 }

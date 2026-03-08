@@ -6,6 +6,6 @@ import lombok.Getter;
 @Builder
 @Getter
 public class ValidateUserCriteriaResponse {
-  private boolean status;
-  private String message;
+  private boolean isValid;
+  private String validationMessage;
 }

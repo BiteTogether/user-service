@@ -118,22 +118,7 @@ public class JwtServiceImpl implements JwtService {
   }
 
   @Override
-  public boolean isTokenValid(String token) {
-    try {
-      return !isTokenExpired(token);
-    } catch (Exception e) {
-      log.error("Invalid token: {}", e.getMessage());
-      return false;
-    }
-  }
-
-  @Override
   public Date extractExpiration(String token) {
     return extractClaim(token, Claims::getExpiration);
-  }
-
-  @Override
-  public boolean isTokenExpired(String token) {
-    return extractExpiration(token).before(new Date());
   }
 }

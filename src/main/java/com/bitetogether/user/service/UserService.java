@@ -15,6 +15,7 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,7 +45,8 @@ public interface UserService {
 
   ApiResponse<Void> deleteAvatar(Long userId);
 
-  ApiResponse<Boolean> validateUserCriteria(ValidateUserCriteriaRequest criteria);
+  ApiResponse<ValidateUserCriteriaResponse> validateUserCriteria(
+      ValidateUserCriteriaRequest criteria);
 
   ApiResponse<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest);
 }

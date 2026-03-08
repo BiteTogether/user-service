@@ -20,6 +20,7 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -190,7 +191,7 @@ public class UserController {
               + "For USERNAME: Checks format (6-20 chars, letters, numbers, dots, underscores) and availability. "
               + "For PHONE: Checks if phone number is already registered in the system")
   @PostMapping("/validate")
-  public ResponseEntity<ApiResponse<Boolean>> validateUserCriteria(
+  public ResponseEntity<ApiResponse<ValidateUserCriteriaResponse>> validateUserCriteria(
       @RequestBody @Valid ValidateUserCriteriaRequest criteria) {
     return buildEntityResponse(userService.validateUserCriteria(criteria));
   }

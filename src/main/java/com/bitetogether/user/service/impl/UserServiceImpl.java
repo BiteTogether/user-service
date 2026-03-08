@@ -25,6 +25,7 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
@@ -406,7 +407,8 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<Boolean> validateUserCriteria(ValidateUserCriteriaRequest criteria) {
+  public ApiResponse<ValidateUserCriteriaResponse> validateUserCriteria(
+      ValidateUserCriteriaRequest criteria) {
     boolean isValid;
     String message;
 
@@ -425,7 +427,10 @@ public class UserServiceImpl implements UserService {
       }
     }
 
-    return buildApiResponse(ApiResponseStatus.SUCCESS, message, isValid);
+    ValidateUserCriteriaResponse response =
+        ValidateUserCriteriaResponse.builder().isValid(isValid).validationMessage(message).build();
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, message, response);
   }
 
   private String validateUsernameWithDetailedMessage(String username) {
@@ -512,6 +517,8 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public ApiResponse<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest) {
+    // Get current authenticated user ID
+    Long userId = getCurrentUserId();
 
     // Verify Firebase ID Token
     FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(updatePhoneRequest.getIdToken());
@@ -519,13 +526,18 @@ public class UserServiceImpl implements UserService {
     String newFirebaseUid = decodedToken.getUid();
     String newPhoneNumber = (String) decodedToken.getClaims().get(PHONE_NUMBER_CLAIM);
 
+    log.info(
+        "Update phone request - User ID: {}, New UID: {}, New Phone: {}",
+        userId,
+        newFirebaseUid,
+        newPhoneNumber);
+
     // Validate phone number from token
     if (StringUtils.isEmpty(newPhoneNumber)) {
       throw new AppException(ErrorCode.INVALID_FIREBASE_TOKEN);
     }
 
     // Get current user
-    Long userId = getCurrentUserId();
     User user = userHelper.findUserById(userId);
 
     // Check if new phone is already used by another user
