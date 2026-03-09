@@ -17,7 +17,6 @@ public class UserCreatedEvent {
   private String avatar;
   private String phoneNumber;
   private String fullName;
-  private String email;
 
   @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   private LocalDateTime eventTimestamp;
