@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-  boolean existsByEmail(String email);
-
-  Optional<User> findByEmail(String email);
+  Optional<User> findByFirebaseUid(String firebaseUid);
 
   boolean existsByPhoneNumber(String phoneNumber);
 
   boolean existsByUsername(String username);
+
+  Optional<User> findByUsername(String username);
 
   @Query("SELECT f FROM User u JOIN u.friends f WHERE u.id = :userId")
   Page<User> getFriendsByUserId(@Param("userId") Long userId, Pageable pageable);

@@ -1,6 +1,11 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:database,security,jwt,openapi,kafka}
+    active: ${SPRING_PROFILES_ACTIVE:database,security,jwt,openapi,firebase}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 8MB
 server:
   port: ${SERVER_PORT:8081}
 

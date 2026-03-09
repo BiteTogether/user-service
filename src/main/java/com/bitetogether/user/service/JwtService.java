@@ -10,13 +10,9 @@ public interface JwtService {
 
   Date extractExpiration(String token);
 
-  String extractEmail(String token);
+  String extractUsername(String token);
 
   String extractJti(String refreshToken);
 
   String extractRefreshJti(String accessToken);
-
-  boolean isTokenValid(String token);
-
-  boolean isTokenExpired(String token);
 }

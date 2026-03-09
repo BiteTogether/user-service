@@ -9,6 +9,4 @@ public class UpdateUserRequest {
   private String username;
 
   private String fullName;
-
-  private String avatar;
 }
