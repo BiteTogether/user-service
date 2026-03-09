@@ -9,15 +9,19 @@ import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
+import com.bitetogether.user.dto.event.CreateConversationEvent;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FriendRequestService;
 import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +40,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   FriendRequestRepository friendRequestRepository;
   UserMapper userMapper;
   UserHelper userHelper;
+  EventPublisherService eventPublisherService;
 
   @Override
   @Transactional
@@ -84,6 +89,10 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     FriendRequest friendRequest = validateAcceptFriendRequest(id);
 
     establishFriendship(friendRequest);
+
+    // Publish event to create a direct conversation
+    publishCreateConversationEvent(
+        friendRequest.getSender().getId(), friendRequest.getReceiver().getId());
 
     deleteFriendRequestHelper(friendRequest.getId());
 
@@ -236,5 +245,18 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         .findBySenderAndReceiver(sender, receiver)
         .map(FriendRequest::getId)
         .orElse(null);
+  }
+
+  // ==================== KAFKA EVENT PUBLISHERS ====================
+
+  private void publishCreateConversationEvent(Long user1Id, Long user2Id) {
+    CreateConversationEvent event =
+        CreateConversationEvent.builder()
+            .user1Id(user1Id)
+            .user2Id(user2Id)
+            .eventTimestamp(LocalDateTime.now())
+            .build();
+
+    eventPublisherService.publishCreateConversationEvent(event);
   }
 }
