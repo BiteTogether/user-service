@@ -1,6 +1,5 @@
 package com.bitetogether.user.service.impl;
 
-import static com.bitetogether.common.util.Constants.CLAIM_EMAIL;
 import static com.bitetogether.common.util.Constants.CLAIM_JTI;
 import static com.bitetogether.common.util.Constants.CLAIM_REFRESH_JTI;
 import static com.bitetogether.common.util.Constants.CLAIM_ROLE;
@@ -42,7 +41,6 @@ public class JwtServiceImpl implements JwtService {
     String jti = UUID.randomUUID().toString();
 
     claims.put(CLAIM_USER_ID, user.getId());
-    claims.put(CLAIM_EMAIL, user.getEmail());
     claims.put(CLAIM_USER_NAME, user.getUsername());
     claims.put(CLAIM_ROLE, user.getRole());
     claims.put(CLAIM_REFRESH_JTI, refreshTokenJti);
@@ -50,7 +48,7 @@ public class JwtServiceImpl implements JwtService {
     LocalDateTime issuedAt = LocalDateTime.now();
     LocalDateTime expiresAt = issuedAt.plusMinutes(jwtProperties.getExpiration());
 
-    return createToken(claims, user.getEmail(), jti, issuedAt, expiresAt);
+    return createToken(claims, user.getUsername(), jti, issuedAt, expiresAt);
   }
 
   @Override
@@ -59,14 +57,14 @@ public class JwtServiceImpl implements JwtService {
 
     claims.put(CLAIM_JTI, refreshTokenJti);
     claims.put(CLAIM_USER_ID, user.getId());
-    claims.put(CLAIM_EMAIL, user.getEmail());
+    claims.put(CLAIM_USER_NAME, user.getUsername());
 
     LocalDateTime issuedAt = LocalDateTime.now();
     LocalDateTime expiresAt = issuedAt.plusMinutes(jwtProperties.getRefreshExpiration());
 
     refreshTokenRepository.save(new RefreshToken(refreshTokenJti, user, issuedAt, expiresAt, null));
 
-    return createToken(claims, user.getEmail(), refreshTokenJti, issuedAt, expiresAt);
+    return createToken(claims, user.getUsername(), refreshTokenJti, issuedAt, expiresAt);
   }
 
   private String createToken(
@@ -105,7 +103,7 @@ public class JwtServiceImpl implements JwtService {
   }
 
   @Override
-  public String extractEmail(String token) {
+  public String extractUsername(String token) {
     return extractClaim(token, Claims::getSubject);
   }
 
@@ -120,22 +118,7 @@ public class JwtServiceImpl implements JwtService {
   }
 
   @Override
-  public boolean isTokenValid(String token) {
-    try {
-      return !isTokenExpired(token);
-    } catch (Exception e) {
-      log.error("Invalid token: {}", e.getMessage());
-      return false;
-    }
-  }
-
-  @Override
   public Date extractExpiration(String token) {
     return extractClaim(token, Claims::getExpiration);
-  }
-
-  @Override
-  public boolean isTokenExpired(String token) {
-    return extractExpiration(token).before(new Date());
   }
 }
