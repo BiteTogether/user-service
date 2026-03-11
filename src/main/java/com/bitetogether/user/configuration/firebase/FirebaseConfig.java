@@ -5,12 +5,12 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import java.io.FileInputStream;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
 @Slf4j
 @Configuration
@@ -22,11 +22,11 @@ public class FirebaseConfig {
   @Bean
   public FirebaseApp initializeFirebase() throws IOException {
     if (FirebaseApp.getApps().isEmpty()) {
-      FileInputStream serviceAccount = new FileInputStream(firebaseProperties.getCredentialsPath());
+      ClassPathResource resource = new ClassPathResource(firebaseProperties.getCredentialsPath());
 
       FirebaseOptions options =
           FirebaseOptions.builder()
-              .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+              .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
               .setStorageBucket(firebaseProperties.getStorageBucket())
               .build();
 
@@ -39,8 +39,8 @@ public class FirebaseConfig {
 
   @Bean
   public Storage storage() throws IOException {
-    FileInputStream serviceAccount = new FileInputStream(firebaseProperties.getCredentialsPath());
-    GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
+    ClassPathResource resource = new ClassPathResource(firebaseProperties.getCredentialsPath());
+    GoogleCredentials credentials = GoogleCredentials.fromStream(resource.getInputStream());
     return StorageOptions.newBuilder().setCredentials(credentials).build().getService();
   }
 }
