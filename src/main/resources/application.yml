@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:database,security,jwt,openapi,firebase}
+    active: ${SPRING_PROFILES_ACTIVE:database,security,jwt,openapi,firebase,kafka}
   servlet:
     multipart:
       enabled: true

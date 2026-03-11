@@ -360,38 +360,6 @@ public class UserServiceImpl implements UserService {
         listUserDetailsResponse);
   }
 
-  // ==================== KAFKA EVENT PUBLISHERS ====================
-
-  private void publishUserCreatedEvent(User user) {
-    UserCreatedEvent event =
-        UserCreatedEvent.builder()
-            .userId(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .phoneNumber(user.getPhoneNumber())
-            .avatar(user.getAvatar())
-            .eventTimestamp(LocalDateTime.now())
-            .version(0L) // Initial version
-            .build();
-
-    eventPublisherService.publishUserCreatedEvent(event);
-  }
-
-  private void publishUserUpdatedEvent(User user, Long version) {
-    UserUpdatedEvent event =
-        UserUpdatedEvent.builder()
-            .userId(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .phoneNumber(user.getPhoneNumber())
-            .avatar(user.getAvatar())
-            .eventTimestamp(LocalDateTime.now())
-            .version(version)
-            .build();
-
-    eventPublisherService.publishUserUpdatedEvent(event);
   @Override
   @Transactional
   public ApiResponse<String> uploadAvatar(Long userId, MultipartFile file) {
@@ -613,5 +581,37 @@ public class UserServiceImpl implements UserService {
                 throw new AppException(ErrorCode.PHONE_EXISTED);
               }
             });
+  }
+
+  // ==================== KAFKA EVENT PUBLISHERS ====================
+
+  private void publishUserCreatedEvent(User user) {
+    UserCreatedEvent event =
+            UserCreatedEvent.builder()
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .fullName(user.getFullName())
+                    .phoneNumber(user.getPhoneNumber())
+                    .avatar(user.getAvatar())
+                    .eventTimestamp(LocalDateTime.now())
+                    .version(0L) // Initial version
+                    .build();
+
+    eventPublisherService.publishUserCreatedEvent(event);
+  }
+
+  private void publishUserUpdatedEvent(User user, Long version) {
+    UserUpdatedEvent event =
+            UserUpdatedEvent.builder()
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .fullName(user.getFullName())
+                    .phoneNumber(user.getPhoneNumber())
+                    .avatar(user.getAvatar())
+                    .eventTimestamp(LocalDateTime.now())
+                    .version(version)
+                    .build();
+
+    eventPublisherService.publishUserUpdatedEvent(event);
   }
 }
