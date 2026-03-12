@@ -77,4 +77,3 @@ public class EventPublisherServiceImpl implements EventPublisherService {
     log.error("Failed to publish {} to topic: {}. Error: {}", eventType, topic, ex.getMessage());
   }
 }
-

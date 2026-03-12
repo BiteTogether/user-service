@@ -1,6 +1,6 @@
 package com.bitetogether.user.service;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.user.dto.auth.request.FirebaseTokenRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.request.RegisterRequest;
@@ -11,15 +11,15 @@ import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 
 public interface AuthService {
 
-  ApiResponse<TokenResponse> firebaseLogin(FirebaseTokenRequest firebaseLoginRequest);
+  ApiResponseDTO<TokenResponse> firebaseLogin(FirebaseTokenRequest firebaseLoginRequest);
 
-  ApiResponse<TokenResponse> register(RegisterRequest registerRequest);
+  ApiResponseDTO<TokenResponse> register(RegisterRequest registerRequest);
 
-  ApiResponse<Void> logOut();
+  ApiResponseDTO<Void> logOut();
 
-  ApiResponse<RefreshTokenReponse> refreshToken(RefreshTokenRequest refreshTokenRequest);
+  ApiResponseDTO<RefreshTokenReponse> refreshToken(RefreshTokenRequest refreshTokenRequest);
 
-  ApiResponse<Void> saveDeviceToken(SaveDeviceTokenRequest requestDto);
+  ApiResponseDTO<Void> saveDeviceToken(SaveDeviceTokenRequest requestDto);
 
-  ApiResponse<SaveDeviceTokenResponse> getDeviceToken();
+  ApiResponseDTO<SaveDeviceTokenResponse> getDeviceToken();
 }

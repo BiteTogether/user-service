@@ -11,8 +11,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.user.convert.UserMapper;
@@ -22,6 +22,7 @@ import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({"java:S2699", "java:S6073"})
 class FriendRequestServiceImplTest {
 
   @Mock private FriendRequestRepository friendRequestRepository;
@@ -47,6 +49,8 @@ class FriendRequestServiceImplTest {
   @Mock private UserMapper userMapper;
 
   @Mock private UserHelper userHelper;
+
+  @Mock private EventPublisherService eventPublisherService;
 
   @InjectMocks private FriendRequestServiceImpl friendRequestService;
 
@@ -56,21 +60,9 @@ class FriendRequestServiceImplTest {
 
   @BeforeEach
   void setUp() {
-    sender =
-        User.builder()
-            .id(1L)
-            .username("sender")
-            .email("sender@example.com")
-            .friends(new HashSet<>())
-            .build();
+    sender = User.builder().id(1L).username("sender").friends(new HashSet<>()).build();
 
-    receiver =
-        User.builder()
-            .id(2L)
-            .username("receiver")
-            .email("receiver@example.com")
-            .friends(new HashSet<>())
-            .build();
+    receiver = User.builder().id(2L).username("receiver").friends(new HashSet<>()).build();
 
     friendRequest = FriendRequest.builder().id(1L).sender(sender).receiver(receiver).build();
   }
@@ -89,7 +81,7 @@ class FriendRequestServiceImplTest {
       when(friendRequestRepository.existsBySenderAndReceiver(receiver, sender)).thenReturn(false);
       when(friendRequestRepository.save(any(FriendRequest.class))).thenReturn(friendRequest);
 
-      ApiResponse<Long> response = friendRequestService.createFriendRequest(receiverId);
+      ApiResponseDTO<Long> response = friendRequestService.createFriendRequest(receiverId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -212,7 +204,7 @@ class FriendRequestServiceImplTest {
       when(userHelper.saveUser(sender)).thenReturn(sender);
       when(userHelper.saveUser(receiver)).thenReturn(receiver);
 
-      ApiResponse<Void> response = friendRequestService.acceptFriendRequest(requestId);
+      ApiResponseDTO<Void> response = friendRequestService.acceptFriendRequest(requestId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -221,6 +213,7 @@ class FriendRequestServiceImplTest {
       verify(userHelper, times(1)).saveUser(sender);
       verify(userHelper, times(1)).saveUser(receiver);
       verify(friendRequestRepository, times(1)).deleteById(requestId);
+      verify(eventPublisherService, times(1)).publishCreateConversationEvent(any());
     }
   }
 
@@ -266,7 +259,7 @@ class FriendRequestServiceImplTest {
 
       when(friendRequestRepository.findById(requestId)).thenReturn(Optional.of(friendRequest));
 
-      ApiResponse<String> response = friendRequestService.deleteFriendRequest(requestId);
+      ApiResponseDTO<String> response = friendRequestService.deleteFriendRequest(requestId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -286,7 +279,7 @@ class FriendRequestServiceImplTest {
 
       when(friendRequestRepository.findById(requestId)).thenReturn(Optional.of(friendRequest));
 
-      ApiResponse<String> response = friendRequestService.deleteFriendRequest(requestId);
+      ApiResponseDTO<String> response = friendRequestService.deleteFriendRequest(requestId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -350,7 +343,7 @@ class FriendRequestServiceImplTest {
       when(friendRequestRepository.findBySenderId(senderId, pageable)).thenReturn(requestPage);
       when(userMapper.toFriendResponse(receiver)).thenReturn(friendResponse);
 
-      ApiResponsePagination<FriendRequestResponse> response =
+      ApiResponsePaginationDTO<FriendRequestResponse> response =
           friendRequestService.getSentFriendRequests(page, size);
 
       assertNotNull(response);
@@ -380,7 +373,7 @@ class FriendRequestServiceImplTest {
       when(friendRequestRepository.findByReceiverId(receiverId, pageable)).thenReturn(requestPage);
       when(userMapper.toFriendResponse(sender)).thenReturn(friendResponse);
 
-      ApiResponsePagination<FriendRequestResponse> response =
+      ApiResponsePaginationDTO<FriendRequestResponse> response =
           friendRequestService.getReceivedFriendRequests(page, size);
 
       assertNotNull(response);

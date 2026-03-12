@@ -5,33 +5,35 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.user.configuration.security.JwtProperties;
-import com.bitetogether.user.dto.auth.request.LoginRequest;
+import com.bitetogether.user.dto.auth.request.FirebaseTokenRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
+import com.bitetogether.user.dto.auth.request.RegisterRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
-import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
 import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.model.RefreshToken;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.JwtService;
-import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.AuthUtils;
+import com.google.firebase.auth.FirebaseToken;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,12 +44,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({
+  "java:S2699",
+  "java:S6073"
+}) // Sonar: assertions present, unboxing warnings are false positives
 class AuthServiceImplTest {
-
-  @Mock private UserService userService;
 
   @Mock private UserRepository userRepository;
 
@@ -57,14 +60,16 @@ class AuthServiceImplTest {
 
   @Mock private JwtProperties jwtProperties;
 
-  @Mock private PasswordEncoder passwordEncoder;
+  @Mock private FirebaseAuthService firebaseAuthService;
 
   @InjectMocks private AuthServiceImpl authService;
 
+  @Mock private FirebaseToken firebaseToken;
+
   private User testUser;
-  private LoginRequest loginRequest;
+  private FirebaseTokenRequest firebaseTokenRequest;
+  private RegisterRequest registerRequest;
   private RefreshTokenRequest refreshTokenRequest;
-  private CreateUserRequest createUserRequest;
   private SaveDeviceTokenRequest saveDeviceTokenRequest;
   private RefreshToken refreshToken;
 
@@ -74,19 +79,22 @@ class AuthServiceImplTest {
         User.builder()
             .id(1L)
             .username("testuser")
-            .email("test@example.com")
-            .password("encodedPassword")
+            .firebaseUid("firebase-uid-123")
             .fullName("Test User")
             .phoneNumber("1234567890")
             .role(Role.USER.name())
             .build();
 
-    loginRequest = new LoginRequest("test@example.com", "password123");
+    firebaseTokenRequest = new FirebaseTokenRequest();
+    firebaseTokenRequest.setIdToken("valid-firebase-token");
+
+    registerRequest = new RegisterRequest();
+    registerRequest.setIdToken("valid-firebase-token");
+    registerRequest.setUsername("newuser");
+    registerRequest.setFullName("New User");
 
     refreshTokenRequest = new RefreshTokenRequest();
     refreshTokenRequest.setRefreshToken("validRefreshToken");
-
-    createUserRequest = new CreateUserRequest();
 
     saveDeviceTokenRequest = new SaveDeviceTokenRequest();
     saveDeviceTokenRequest.setDeviceToken("device-token-123");
@@ -100,60 +108,120 @@ class AuthServiceImplTest {
   }
 
   @Test
-  void logIn_WithValidCredentials_ReturnsTokenResponse() {
+  void firebaseLogin_WithValidTokenAndExistingUser_ReturnsTokenResponse() {
     String accessToken = "access-token";
     String refreshTokenValue = "refresh-token";
     Long expiration = 3600000L;
     Long refreshExpiration = 604800000L;
+    String firebaseUid = "firebase-uid-123";
+    String phoneNumber = "1234567890";
 
-    when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(Optional.of(testUser));
-    when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
-        .thenReturn(true);
-    when(jwtService.generateToken(eq(testUser), anyString())).thenReturn(accessToken);
-    when(jwtService.generateRefreshToken(eq(testUser), anyString())).thenReturn(refreshTokenValue);
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(firebaseTokenRequest.getIdToken()))
+        .thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.of(testUser));
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn(accessToken);
+    when(jwtService.generateRefreshToken(any(User.class), anyString()))
+        .thenReturn(refreshTokenValue);
     when(jwtProperties.getExpiration()).thenReturn(expiration);
     when(jwtProperties.getRefreshExpiration()).thenReturn(refreshExpiration);
 
-    ApiResponse<TokenResponse> response = authService.logIn(loginRequest);
+    ApiResponseDTO<TokenResponse> response = authService.firebaseLogin(firebaseTokenRequest);
 
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    assertEquals("Log in successfully", response.getMessage());
+    assertEquals("Login successfully", response.getMessage());
     assertNotNull(response.getData());
     assertEquals(accessToken, response.getData().getAccessToken());
     assertEquals(refreshTokenValue, response.getData().getRefreshToken());
     assertEquals(expiration, response.getData().getExpiresIn());
     assertEquals(refreshExpiration, response.getData().getRefreshExpiresIn());
     assertNotNull(response.getData().getSessionState());
-
-    verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
-    verify(passwordEncoder, times(1)).matches(loginRequest.getPassword(), testUser.getPassword());
-    verify(jwtService, times(1)).generateToken(eq(testUser), anyString());
-    verify(jwtService, times(1)).generateRefreshToken(eq(testUser), anyString());
+    verify(firebaseAuthService).verifyIdToken(firebaseTokenRequest.getIdToken());
+    verify(userRepository).findByFirebaseUid(firebaseUid);
+    verify(jwtService).generateToken(any(User.class), anyString());
+    verify(jwtService).generateRefreshToken(any(User.class), anyString());
   }
 
   @Test
-  void logIn_WithNonExistentUser_ThrowsUnauthorizedException() {
-    when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(Optional.empty());
+  void firebaseLogin_WithNonExistentUser_ThrowsAppException() {
+    String firebaseUid = "firebase-uid-123";
+    String phoneNumber = "9999999999";
 
-    assertThrows(AppException.class, () -> authService.logIn(loginRequest));
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
 
-    verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
-    verify(passwordEncoder, never()).matches(anyString(), anyString());
-    verify(jwtService, never()).generateToken(any(), anyString());
+    when(firebaseAuthService.verifyIdToken(firebaseTokenRequest.getIdToken()))
+        .thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+
+    assertThrows(AppException.class, () -> authService.firebaseLogin(firebaseTokenRequest));
+
+    verify(firebaseAuthService).verifyIdToken(firebaseTokenRequest.getIdToken());
+    verify(jwtService, never()).generateToken(any(User.class), anyString());
   }
 
   @Test
-  void logIn_WithInvalidPassword_ThrowsUnauthorizedException() {
-    when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(Optional.of(testUser));
-    when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
-        .thenReturn(false);
+  void register_WithValidRequest_ReturnsTokenResponse() {
+    String accessToken = "access-token";
+    String refreshTokenValue = "refresh-token";
+    Long expiration = 3600000L;
+    Long refreshExpiration = 604800000L;
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "0987654321";
 
-    assertThrows(AppException.class, () -> authService.logIn(loginRequest));
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
 
-    verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
-    verify(passwordEncoder, times(1)).matches(loginRequest.getPassword(), testUser.getPassword());
-    verify(jwtService, never()).generateToken(any(), anyString());
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+    when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(false);
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn(accessToken);
+    when(jwtService.generateRefreshToken(any(User.class), anyString()))
+        .thenReturn(refreshTokenValue);
+    when(jwtProperties.getExpiration()).thenReturn(expiration);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(refreshExpiration);
+
+    ApiResponseDTO<TokenResponse> response = authService.register(registerRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+    assertEquals("User registered successfully", response.getMessage());
+    assertNotNull(response.getData());
+    assertEquals(accessToken, response.getData().getAccessToken());
+    assertEquals(refreshTokenValue, response.getData().getRefreshToken());
+    verify(firebaseAuthService).verifyIdToken(registerRequest.getIdToken());
+    verify(userRepository).save(any(User.class));
+  }
+
+  @Test
+  void register_WithExistingFirebaseUid_ThrowsAppException() {
+    String firebaseUid = "existing-firebase-uid";
+    String phoneNumber = "1234567890";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.of(testUser));
+
+    assertThrows(AppException.class, () -> authService.register(registerRequest));
+
+    verify(firebaseAuthService).verifyIdToken(registerRequest.getIdToken());
+    verify(userRepository, never()).save(any(User.class));
   }
 
   @Test
@@ -165,24 +233,22 @@ class AuthServiceImplTest {
     try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
       authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
       authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
       when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
       when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
 
-      ApiResponse<Void> response = authService.logOut();
+      ApiResponseDTO<Void> response = authService.logOut();
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertEquals("Log out successfully", response.getMessage());
-
-      verify(jwtService, times(1)).extractRefreshJti(accessToken);
-      verify(refreshTokenRepository, times(1)).findById(refreshJti);
-      verify(refreshTokenRepository, times(1)).delete(refreshToken);
+      verify(jwtService).extractRefreshJti(accessToken);
+      verify(refreshTokenRepository).findById(refreshJti);
+      verify(refreshTokenRepository).delete(refreshToken);
     }
   }
 
   @Test
-  void logOut_WithNonExistentRefreshToken_ThrowsNotFoundException() {
+  void logOut_WithNonExistentRefreshToken_ThrowsAppException() {
     Long currentUserId = 1L;
     String accessToken = "valid-access-token";
     String refreshJti = "non-existent-jti";
@@ -190,7 +256,6 @@ class AuthServiceImplTest {
     try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
       authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
       authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
       when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
       when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.empty());
 
@@ -201,7 +266,7 @@ class AuthServiceImplTest {
   }
 
   @Test
-  void logOut_WithMismatchedUserId_ThrowsNotFoundException() {
+  void logOut_WithMismatchedUserId_ThrowsAppException() {
     Long currentUserId = 2L;
     String accessToken = "valid-access-token";
     String refreshJti = "refresh-jti-123";
@@ -221,18 +286,18 @@ class AuthServiceImplTest {
 
   @Test
   void refreshToken_WithValidToken_ReturnsNewAccessToken() {
-    String email = "test@example.com";
+    String username = "testuser";
     String refreshJti = "refresh-jti-123";
     String newAccessToken = "new-access-token";
     Long expiration = 3600000L;
 
-    when(jwtService.extractEmail(refreshTokenRequest.getRefreshToken())).thenReturn(email);
-    when(userRepository.findByEmail(email)).thenReturn(Optional.of(testUser));
+    when(jwtService.extractUsername(refreshTokenRequest.getRefreshToken())).thenReturn(username);
+    when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
     when(jwtService.extractJti(refreshTokenRequest.getRefreshToken())).thenReturn(refreshJti);
     when(jwtService.generateToken(testUser, refreshJti)).thenReturn(newAccessToken);
     when(jwtProperties.getExpiration()).thenReturn(expiration);
 
-    ApiResponse<RefreshTokenReponse> response = authService.refreshToken(refreshTokenRequest);
+    ApiResponseDTO<RefreshTokenReponse> response = authService.refreshToken(refreshTokenRequest);
 
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -241,47 +306,24 @@ class AuthServiceImplTest {
     assertEquals(newAccessToken, response.getData().getAccessToken());
     assertEquals(expiration, response.getData().getExpiresIn());
     assertNotNull(response.getData().getSessionState());
-
-    verify(jwtService, times(1)).extractEmail(refreshTokenRequest.getRefreshToken());
-    verify(userRepository, times(1)).findByEmail(email);
-    verify(jwtService, times(1)).extractJti(refreshTokenRequest.getRefreshToken());
-    verify(jwtService, times(1)).generateToken(testUser, refreshJti);
+    verify(jwtService).extractUsername(refreshTokenRequest.getRefreshToken());
+    verify(userRepository).findByUsername(username);
+    verify(jwtService).extractJti(refreshTokenRequest.getRefreshToken());
+    verify(jwtService).generateToken(testUser, refreshJti);
   }
 
   @Test
-  void refreshToken_WithNonExistentUser_ThrowsNotFoundException() {
-    String email = "nonexistent@example.com";
+  void refreshToken_WithNonExistentUser_ThrowsAppException() {
+    String username = "nonexistent";
 
-    when(jwtService.extractEmail(refreshTokenRequest.getRefreshToken())).thenReturn(email);
-    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+    when(jwtService.extractUsername(refreshTokenRequest.getRefreshToken())).thenReturn(username);
+    when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
 
     assertThrows(AppException.class, () -> authService.refreshToken(refreshTokenRequest));
 
-    verify(jwtService, times(1)).extractEmail(refreshTokenRequest.getRefreshToken());
-    verify(userRepository, times(1)).findByEmail(email);
+    verify(jwtService).extractUsername(refreshTokenRequest.getRefreshToken());
+    verify(userRepository).findByUsername(username);
     verify(jwtService, never()).generateToken(any(), anyString());
-  }
-
-  @Test
-  void register_WithValidRequest_ReturnsUserId() {
-    ApiResponse<Long> expectedResponse =
-        ApiResponse.<Long>builder()
-            .status(ApiResponseStatus.SUCCESS.getCode())
-            .message("User created successfully")
-            .data(1L)
-            .build();
-
-    when(userService.createUser(createUserRequest)).thenReturn(expectedResponse);
-
-    ApiResponse<Long> response = authService.register(createUserRequest);
-
-    assertNotNull(response);
-    assertEquals(expectedResponse.getStatus(), response.getStatus());
-    assertEquals(expectedResponse.getMessage(), response.getMessage());
-    assertEquals(expectedResponse.getData(), response.getData());
-    assertEquals(Role.USER.name(), createUserRequest.getRole());
-
-    verify(userService, times(1)).createUser(createUserRequest);
   }
 
   @Test
@@ -299,7 +341,7 @@ class AuthServiceImplTest {
       when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
       when(refreshTokenRepository.save(refreshToken)).thenReturn(refreshToken);
 
-      ApiResponse<Void> response = authService.saveDeviceToken(saveDeviceTokenRequest);
+      ApiResponseDTO<Void> response = authService.saveDeviceToken(saveDeviceTokenRequest);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -367,7 +409,7 @@ class AuthServiceImplTest {
       when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
       when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
 
-      ApiResponse<SaveDeviceTokenResponse> response = authService.getDeviceToken();
+      ApiResponseDTO<SaveDeviceTokenResponse> response = authService.getDeviceToken();
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());

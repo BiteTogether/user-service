@@ -17,11 +17,12 @@
 
     <properties>
         <java.version>21</java.version>
-        <common-service.version>0.0.4-SNAPSHOT</common-service.version>
+        <common-service.version>0.0.7-SNAPSHOT</common-service.version>
         <lombok.version>1.18.38</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <spotless.version>2.46.1</spotless.version>
         <jwt.version>0.11.5</jwt.version>
+        <junit.version>5.10.2</junit.version>
     </properties>
 
     <dependencies>
@@ -101,6 +102,21 @@
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <repositories>

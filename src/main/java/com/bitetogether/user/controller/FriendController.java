@@ -5,8 +5,8 @@ import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
 import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.validation.ValidPage;
 import com.bitetogether.common.validation.ValidSize;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
@@ -38,7 +38,7 @@ public class FriendController {
       description =
           "Retrieves a paginated list of all friends for the currently authenticated user")
   @GetMapping
-  public ResponseEntity<ApiResponsePagination<FriendResponse>> getFriendsList(
+  public ResponseEntity<ApiResponsePaginationDTO<FriendResponse>> getFriendsList(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) @ValidPage int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) @ValidSize int size) {
     return buildEntityResponse(friendService.getFriendsList(page, size));
@@ -49,7 +49,7 @@ public class FriendController {
       description =
           "Removes a friend connection between the authenticated user and another user. This action unfriends the user")
   @DeleteMapping("/{id}")
-  public ResponseEntity<ApiResponse<String>> deleteFriend(@PathVariable Long id) {
+  public ResponseEntity<ApiResponseDTO<String>> deleteFriend(@PathVariable Long id) {
     return buildEntityResponse(friendService.deleteFriend(id));
   }
 }

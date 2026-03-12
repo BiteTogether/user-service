@@ -3,7 +3,6 @@ package com.bitetogether.user.service.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,7 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
@@ -35,6 +34,7 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
 import java.time.LocalDateTime;
@@ -49,16 +49,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({
+  "java:S2699",
+  "java:S6073"
+}) // Sonar: assertions present, unboxing warnings are false positives
 class UserServiceImplTest {
 
   @Mock private UserRepository userRepository;
 
   @Mock private UserMapper userMapper;
-
-  @Mock private PasswordEncoder passwordEncoder;
 
   @Mock private UserHelper userHelper;
 
@@ -67,6 +68,8 @@ class UserServiceImplTest {
   @Mock private FriendRequestRepository friendRequestRepository;
 
   @Mock private RefreshTokenRepository refreshTokenRepository;
+
+  @Mock private EventPublisherService eventPublisherService;
 
   @InjectMocks private UserServiceImpl userService;
 
@@ -84,8 +87,7 @@ class UserServiceImplTest {
         User.builder()
             .id(1L)
             .username("testuser")
-            .email("test@example.com")
-            .password("password123")
+            .firebaseUid("firebase-uid-1")
             .fullName("Test User")
             .phoneNumber("1234567890")
             .role(Role.USER.name())
@@ -100,8 +102,7 @@ class UserServiceImplTest {
         User.builder()
             .id(2L)
             .username("frienduser")
-            .email("friend@example.com")
-            .password("password123")
+            .firebaseUid("firebase-uid-2")
             .fullName("Friend User")
             .phoneNumber("0987654321")
             .role(Role.USER.name())
@@ -112,18 +113,16 @@ class UserServiceImplTest {
 
     createUserRequest = new CreateUserRequest();
     createUserRequest.setUsername("newuser");
-    createUserRequest.setEmail("new@example.com");
-    createUserRequest.setPassword("Password123");
+    createUserRequest.setFirebaseUid("firebase-uid-new");
     createUserRequest.setFullName("New User");
     createUserRequest.setPhoneNumber("1112223333");
 
     updateUserRequest = new UpdateUserRequest();
     updateUserRequest.setUsername("updateduser");
     updateUserRequest.setFullName("Updated Name");
-    updateUserRequest.setAvatar("avatar.jpg");
 
     userSearchRequest = new UserSearchRequest();
-    userSearchRequest.setKeyword("test@example.com");
+    userSearchRequest.setKeyword("testuser");
 
     notificationSettingsRequest = new UserNotificationSettingsRequest();
     notificationSettingsRequest.setPushNotificationsEnabled(true);
@@ -135,64 +134,60 @@ class UserServiceImplTest {
 
   @Test
   void createUser_WithValidRequest_ReturnsUserId() {
-    User newUser = User.builder().id(null).password("Password123").build();
-    User savedUser = User.builder().id(3L).password("encodedPassword").build();
+    User newUser = User.builder().id(null).build();
+    User savedUser = User.builder().id(3L).build();
 
-    when(userRepository.existsByEmail(createUserRequest.getEmail())).thenReturn(false);
+    when(userRepository.existsByUsername(createUserRequest.getUsername())).thenReturn(false);
     when(userRepository.existsByPhoneNumber(createUserRequest.getPhoneNumber())).thenReturn(false);
     when(userMapper.toEntity(createUserRequest)).thenReturn(newUser);
-    when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
     when(userHelper.saveUser(any(User.class))).thenReturn(savedUser);
 
-    ApiResponse<Long> response = userService.createUser(createUserRequest);
+    ApiResponseDTO<Long> response = userService.createUser(createUserRequest);
 
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     assertEquals("User created successfully", response.getMessage());
     assertEquals(3L, response.getData());
 
-    verify(userRepository, times(1)).existsByEmail(createUserRequest.getEmail());
+    verify(userRepository, times(1)).existsByUsername(createUserRequest.getUsername());
     verify(userRepository, times(1)).existsByPhoneNumber(createUserRequest.getPhoneNumber());
-    verify(passwordEncoder, times(1)).encode("Password123");
     verify(userHelper, times(1)).saveUser(any(User.class));
   }
 
   @Test
-  void createUser_WithExistingEmail_ThrowsException() {
-    when(userRepository.existsByEmail(createUserRequest.getEmail())).thenReturn(true);
+  void createUser_WithExistingUsername_ThrowsException() {
+    when(userRepository.existsByUsername(createUserRequest.getUsername())).thenReturn(true);
 
     assertThrows(AppException.class, () -> userService.createUser(createUserRequest));
 
-    verify(userRepository, times(1)).existsByEmail(createUserRequest.getEmail());
+    verify(userRepository, times(1)).existsByUsername(createUserRequest.getUsername());
     verify(userRepository, never()).existsByPhoneNumber(any());
     verify(userHelper, never()).saveUser(any());
   }
 
   @Test
   void createUser_WithExistingPhoneNumber_ThrowsException() {
-    when(userRepository.existsByEmail(createUserRequest.getEmail())).thenReturn(false);
+    when(userRepository.existsByUsername(createUserRequest.getUsername())).thenReturn(false);
     when(userRepository.existsByPhoneNumber(createUserRequest.getPhoneNumber())).thenReturn(true);
 
     assertThrows(AppException.class, () -> userService.createUser(createUserRequest));
 
-    verify(userRepository, times(1)).existsByEmail(createUserRequest.getEmail());
+    verify(userRepository, times(1)).existsByUsername(createUserRequest.getUsername());
     verify(userRepository, times(1)).existsByPhoneNumber(createUserRequest.getPhoneNumber());
     verify(userHelper, never()).saveUser(any());
   }
 
   @Test
   void createUser_WithNullRole_SetsDefaultRole() {
-    User newUser = User.builder().id(null).password("Password123").role(null).build();
-    User savedUser =
-        User.builder().id(3L).password("encodedPassword").role(Role.USER.name()).build();
+    User newUser = User.builder().id(null).role(null).build();
+    User savedUser = User.builder().id(3L).role(Role.USER.name()).build();
 
-    when(userRepository.existsByEmail(createUserRequest.getEmail())).thenReturn(false);
+    when(userRepository.existsByUsername(createUserRequest.getUsername())).thenReturn(false);
     when(userRepository.existsByPhoneNumber(createUserRequest.getPhoneNumber())).thenReturn(false);
     when(userMapper.toEntity(createUserRequest)).thenReturn(newUser);
-    when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
     when(userHelper.saveUser(any(User.class))).thenReturn(savedUser);
 
-    ApiResponse<Long> response = userService.createUser(createUserRequest);
+    ApiResponseDTO<Long> response = userService.createUser(createUserRequest);
 
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -213,7 +208,7 @@ class UserServiceImplTest {
       when(userHelper.saveUser(testUser)).thenReturn(testUser);
       when(userMapper.toUserResponse(testUser)).thenReturn(userResponse);
 
-      ApiResponse<UserResponse> response = userService.updateUser(userId, updateUserRequest);
+      ApiResponseDTO<UserResponse> response = userService.updateUser(userId, updateUserRequest);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -270,7 +265,7 @@ class UserServiceImplTest {
 
       when(userHelper.findUserById(userId)).thenReturn(testUser);
 
-      ApiResponse<String> response = userService.deleteUser(userId);
+      ApiResponseDTO<String> response = userService.deleteUser(userId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -294,7 +289,7 @@ class UserServiceImplTest {
 
       when(userHelper.findUserById(userId)).thenReturn(testUser);
 
-      ApiResponse<String> response = userService.deleteUser(userId);
+      ApiResponseDTO<String> response = userService.deleteUser(userId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -321,7 +316,7 @@ class UserServiceImplTest {
       when(userHelper.findUserById(currentUserId)).thenReturn(testUser);
       when(userMapper.toUserDetailsResponse(testUser)).thenReturn(userDetailsResponse);
 
-      ApiResponse<UserDetailsResponse> response = userService.getCurrentUser();
+      ApiResponseDTO<UserDetailsResponse> response = userService.getCurrentUser();
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -350,7 +345,7 @@ class UserServiceImplTest {
       when(userHelper.findUserById(currentUserId)).thenReturn(testUser);
       when(userMapper.toUserGetByIdResponse(friendUser)).thenReturn(userGetByIdResponse);
 
-      ApiResponse<UserGetByIdResponse> response = userService.getUserById(targetUserId);
+      ApiResponseDTO<UserGetByIdResponse> response = userService.getUserById(targetUserId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -378,7 +373,7 @@ class UserServiceImplTest {
           .thenReturn(FriendRequestType.SENT);
       when(friendRequestService.getFriendRequestSentId(testUser, friendUser)).thenReturn(requestId);
 
-      ApiResponse<UserGetByIdResponse> response = userService.getUserById(targetUserId);
+      ApiResponseDTO<UserGetByIdResponse> response = userService.getUserById(targetUserId);
 
       assertNotNull(response);
       assertNotNull(response.getData().getFriendItem());
@@ -406,7 +401,7 @@ class UserServiceImplTest {
       when(friendRequestService.getFriendRequestReceivedId(testUser, friendUser))
           .thenReturn(requestId);
 
-      ApiResponse<UserGetByIdResponse> response = userService.getUserById(targetUserId);
+      ApiResponseDTO<UserGetByIdResponse> response = userService.getUserById(targetUserId);
 
       assertNotNull(response);
       assertNotNull(response.getData().getFriendItem());
@@ -431,7 +426,7 @@ class UserServiceImplTest {
       when(friendRequestService.getFriendRequestTypeBetweenUsers(testUser, friendUser))
           .thenReturn(FriendRequestType.NONE);
 
-      ApiResponse<UserGetByIdResponse> response = userService.getUserById(targetUserId);
+      ApiResponseDTO<UserGetByIdResponse> response = userService.getUserById(targetUserId);
 
       assertNotNull(response);
       assertNotNull(response.getData().getFriendItem());
@@ -442,62 +437,22 @@ class UserServiceImplTest {
   }
 
   @Test
-  void searchUsersWithFilter_WithValidEmail_ReturnsUser() {
-    UserSearchResponse userSearchResponse = new UserSearchResponse();
-    userSearchResponse.setId(1L);
-    userSearchResponse.setUsername("testuser");
-
-    when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-    when(userMapper.toUserSearchResponse(testUser)).thenReturn(userSearchResponse);
-
-    ApiResponse<UserSearchResponse> response = userService.searchUsersWithFilter(userSearchRequest);
-
-    assertNotNull(response);
-    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    assertEquals("Users have been fetched successfully", response.getMessage());
-    assertEquals(userSearchResponse, response.getData());
-
-    verify(userRepository, times(1)).findByEmail("test@example.com");
-  }
-
-  @Test
   void searchUsersWithFilter_WithValidPhoneNumber_ReturnsUser() {
-    userSearchRequest.setKeyword("1234567890");
+    userSearchRequest.setKeyword("testuser");
     UserSearchResponse userSearchResponse = new UserSearchResponse();
     userSearchResponse.setId(1L);
 
-    when(userRepository.findByPhoneNumber("1234567890")).thenReturn(Optional.of(testUser));
+    when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
     when(userMapper.toUserSearchResponse(testUser)).thenReturn(userSearchResponse);
 
-    ApiResponse<UserSearchResponse> response = userService.searchUsersWithFilter(userSearchRequest);
+    ApiResponseDTO<UserSearchResponse> response =
+        userService.searchUsersWithFilter(userSearchRequest);
 
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     assertEquals(userSearchResponse, response.getData());
 
-    verify(userRepository, times(1)).findByPhoneNumber("1234567890");
-  }
-
-  @Test
-  void searchUsersWithFilter_WithNoResults_ReturnsNull() {
-    when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
-
-    ApiResponse<UserSearchResponse> response = userService.searchUsersWithFilter(userSearchRequest);
-
-    assertNotNull(response);
-    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    assertEquals("No users found matching the keyword", response.getMessage());
-    assertNull(response.getData());
-  }
-
-  @Test
-  void searchUsersWithFilter_WithInvalidKeyword_ThrowsException() {
-    userSearchRequest.setKeyword("invalidkeyword");
-
-    assertThrows(AppException.class, () -> userService.searchUsersWithFilter(userSearchRequest));
-
-    verify(userRepository, never()).findByEmail(any());
-    verify(userRepository, never()).findByPhoneNumber(any());
+    verify(userRepository, times(1)).findByUsername("testuser");
   }
 
   @Test
@@ -514,7 +469,8 @@ class UserServiceImplTest {
       when(userHelper.findUserById(userId)).thenReturn(testUser);
       when(userMapper.toUserNotificationResponse(testUser)).thenReturn(notificationResponse);
 
-      ApiResponse<UserNotificationResponse> response = userService.getNotificationSettings(userId);
+      ApiResponseDTO<UserNotificationResponse> response =
+          userService.getNotificationSettings(userId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -534,7 +490,7 @@ class UserServiceImplTest {
       when(userHelper.findUserById(userId)).thenReturn(testUser);
       when(userHelper.saveUser(testUser)).thenReturn(testUser);
 
-      ApiResponse<Void> response =
+      ApiResponseDTO<Void> response =
           userService.updateNotificationSettings(userId, notificationSettingsRequest);
 
       assertNotNull(response);
@@ -558,7 +514,7 @@ class UserServiceImplTest {
       when(userHelper.findUserById(userId)).thenReturn(testUser);
       when(userHelper.saveUser(testUser)).thenReturn(testUser);
 
-      ApiResponse<Void> response = userService.setUserOnline(userId, userOnlineStatus);
+      ApiResponseDTO<Void> response = userService.setUserOnline(userId, userOnlineStatus);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -586,7 +542,7 @@ class UserServiceImplTest {
       when(userMapper.toUserDetailsResponse(testUser)).thenReturn(userDetails1);
       when(userMapper.toUserDetailsResponse(friendUser)).thenReturn(userDetails2);
 
-      ApiResponse<ListUserDetailsResponse> response = userService.getListUser(userIds);
+      ApiResponseDTO<ListUserDetailsResponse> response = userService.getListUser(userIds);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -624,7 +580,8 @@ class UserServiceImplTest {
       UserNotificationResponse notificationResponse = new UserNotificationResponse();
       when(userMapper.toUserNotificationResponse(testUser)).thenReturn(notificationResponse);
 
-      ApiResponse<UserNotificationResponse> response = userService.getNotificationSettings(userId);
+      ApiResponseDTO<UserNotificationResponse> response =
+          userService.getNotificationSettings(userId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());

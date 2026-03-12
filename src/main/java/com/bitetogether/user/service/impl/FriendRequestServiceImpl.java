@@ -3,8 +3,8 @@ package com.bitetogether.user.service.impl;
 import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
@@ -20,7 +20,6 @@ import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FriendRequestService;
 import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AccessLevel;
@@ -44,7 +43,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
   @Override
   @Transactional
-  public ApiResponse<Long> createFriendRequest(Long receiverId) {
+  public ApiResponseDTO<Long> createFriendRequest(Long receiverId) {
     Long senderId = getCurrentUserId();
 
     validateCreateFriendRequest(senderId, receiverId);
@@ -85,7 +84,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
   @Override
   @Transactional
-  public ApiResponse<Void> acceptFriendRequest(Long id) {
+  public ApiResponseDTO<Void> acceptFriendRequest(Long id) {
     FriendRequest friendRequest = validateAcceptFriendRequest(id);
 
     establishFriendship(friendRequest);
@@ -130,7 +129,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteFriendRequest(Long id) {
+  public ApiResponseDTO<String> deleteFriendRequest(Long id) {
     Long currentUserId = getCurrentUserId();
 
     FriendRequest friendRequest = validateDeleteFriendRequest(id, currentUserId);
@@ -160,7 +159,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   }
 
   @Override
-  public ApiResponsePagination<FriendRequestResponse> getSentFriendRequests(int page, int size) {
+  public ApiResponsePaginationDTO<FriendRequestResponse> getSentFriendRequests(int page, int size) {
     Long currentUserId = getCurrentUserId();
 
     Pageable pageable = PageRequest.of(page, size);
@@ -189,7 +188,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   }
 
   @Override
-  public ApiResponsePagination<FriendRequestResponse> getReceivedFriendRequests(
+  public ApiResponsePaginationDTO<FriendRequestResponse> getReceivedFriendRequests(
       int page, int size) {
     Long currentUserId = getCurrentUserId();
 
