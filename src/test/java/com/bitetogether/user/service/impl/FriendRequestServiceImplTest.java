@@ -22,6 +22,7 @@ import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({"java:S2699", "java:S6073"})
 class FriendRequestServiceImplTest {
 
   @Mock private FriendRequestRepository friendRequestRepository;
@@ -47,6 +49,8 @@ class FriendRequestServiceImplTest {
   @Mock private UserMapper userMapper;
 
   @Mock private UserHelper userHelper;
+
+  @Mock private EventPublisherService eventPublisherService;
 
   @InjectMocks private FriendRequestServiceImpl friendRequestService;
 
@@ -209,6 +213,7 @@ class FriendRequestServiceImplTest {
       verify(userHelper, times(1)).saveUser(sender);
       verify(userHelper, times(1)).saveUser(receiver);
       verify(friendRequestRepository, times(1)).deleteById(requestId);
+      verify(eventPublisherService, times(1)).publishCreateConversationEvent(any());
     }
   }
 

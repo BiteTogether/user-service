@@ -35,6 +35,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({
+  "java:S2699",
+  "java:S6073"
+}) // Sonar: assertions present, unboxing warnings are false positives
 class FriendServiceImplTest {
 
   @Mock private UserMapper userMapper;

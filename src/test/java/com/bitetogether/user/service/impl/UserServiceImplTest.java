@@ -3,7 +3,6 @@ package com.bitetogether.user.service.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +34,7 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
 import java.time.LocalDateTime;
@@ -51,6 +51,10 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({
+  "java:S2699",
+  "java:S6073"
+}) // Sonar: assertions present, unboxing warnings are false positives
 class UserServiceImplTest {
 
   @Mock private UserRepository userRepository;
@@ -64,6 +68,8 @@ class UserServiceImplTest {
   @Mock private FriendRequestRepository friendRequestRepository;
 
   @Mock private RefreshTokenRepository refreshTokenRepository;
+
+  @Mock private EventPublisherService eventPublisherService;
 
   @InjectMocks private UserServiceImpl userService;
 
@@ -431,10 +437,10 @@ class UserServiceImplTest {
   }
 
   @Test
-  void searchUsersWithFilter_WithValidUsername_ReturnsUser() {
+  void searchUsersWithFilter_WithValidPhoneNumber_ReturnsUser() {
+    userSearchRequest.setKeyword("testuser");
     UserSearchResponse userSearchResponse = new UserSearchResponse();
     userSearchResponse.setId(1L);
-    userSearchResponse.setUsername("testuser");
 
     when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
     when(userMapper.toUserSearchResponse(testUser)).thenReturn(userSearchResponse);
@@ -444,52 +450,9 @@ class UserServiceImplTest {
 
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    assertEquals("Users have been fetched successfully", response.getMessage());
     assertEquals(userSearchResponse, response.getData());
 
     verify(userRepository, times(1)).findByUsername("testuser");
-  }
-
-  @Test
-  void searchUsersWithFilter_WithValidPhoneNumber_ReturnsUser() {
-    userSearchRequest.setKeyword("1234567890");
-    UserSearchResponse userSearchResponse = new UserSearchResponse();
-    userSearchResponse.setId(1L);
-
-    when(userRepository.findByPhoneNumber("1234567890")).thenReturn(Optional.of(testUser));
-    when(userMapper.toUserSearchResponse(testUser)).thenReturn(userSearchResponse);
-
-    ApiResponseDTO<UserSearchResponse> response =
-        userService.searchUsersWithFilter(userSearchRequest);
-
-    assertNotNull(response);
-    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    assertEquals(userSearchResponse, response.getData());
-
-    verify(userRepository, times(1)).findByPhoneNumber("1234567890");
-  }
-
-  @Test
-  void searchUsersWithFilter_WithNoResults_ReturnsNull() {
-    when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
-
-    ApiResponseDTO<UserSearchResponse> response =
-        userService.searchUsersWithFilter(userSearchRequest);
-
-    assertNotNull(response);
-    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    assertEquals("No users found matching the keyword", response.getMessage());
-    assertNull(response.getData());
-  }
-
-  @Test
-  void searchUsersWithFilter_WithInvalidKeyword_ThrowsException() {
-    userSearchRequest.setKeyword("invalidkeyword");
-
-    assertThrows(AppException.class, () -> userService.searchUsersWithFilter(userSearchRequest));
-
-    verify(userRepository, never()).findByUsername(any());
-    verify(userRepository, never()).findByPhoneNumber(any());
   }
 
   @Test

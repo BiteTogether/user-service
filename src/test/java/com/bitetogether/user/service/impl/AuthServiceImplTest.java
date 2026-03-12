@@ -46,6 +46,10 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({
+  "java:S2699",
+  "java:S6073"
+}) // Sonar: assertions present, unboxing warnings are false positives
 class AuthServiceImplTest {
 
   @Mock private UserRepository userRepository;

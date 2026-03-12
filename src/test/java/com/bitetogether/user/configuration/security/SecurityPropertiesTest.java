@@ -1,6 +1,7 @@
 package com.bitetogether.user.configuration.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,7 +44,7 @@ class SecurityPropertiesTest {
 
     assertNotNull(result);
     assertEquals(1, result.size());
-    assertEquals("/api/auth/**", result.get(0));
+    assertEquals("/api/auth/**", result.getFirst());
   }
 
   @Test
@@ -155,7 +156,7 @@ class SecurityPropertiesTest {
 
     assertNotNull(result);
     assertEquals(1, result.size());
-    assertEquals("Authorization", result.get(0));
+    assertEquals("Authorization", result.getFirst());
   }
 
   @Test
@@ -179,7 +180,7 @@ class SecurityPropertiesTest {
 
     securityProperties.setAllowCredentials(false);
 
-    assertEquals(false, securityProperties.isAllowCredentials());
+    assertFalse(securityProperties.isAllowCredentials());
   }
 
   @ParameterizedTest
