@@ -2,7 +2,7 @@ package com.bitetogether.user.exception;
 
 import static com.bitetogether.common.enums.ApiResponseStatus.getDefaultMessage;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.exception.BaseErrorCode;
 import lombok.AccessLevel;
@@ -44,11 +44,11 @@ public enum ErrorCode implements BaseErrorCode {
   AVATAR_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "Avatar not found"),
   ;
 
-  ApiResponse<Void> response;
+  ApiResponseDTO<Void> response;
 
   ErrorCode(ApiResponseStatus status, String message) {
     this.response =
-        ApiResponse.<Void>builder().status(status.getCode()).message(message).data(null).build();
+        ApiResponseDTO.<Void>builder().status(status.getCode()).message(message).data(null).build();
   }
 
   public String getMessage() {

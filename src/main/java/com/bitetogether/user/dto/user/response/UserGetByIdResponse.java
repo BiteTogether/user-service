@@ -11,7 +11,6 @@ import lombok.Setter;
 public class UserGetByIdResponse {
   private Long id;
   private String username;
-  private String email;
   private String fullName;
   private String phoneNumber;
   private String avatar;

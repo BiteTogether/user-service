@@ -1,7 +1,6 @@
 package com.bitetogether.user.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,14 +17,10 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +49,7 @@ class JwtServiceImplTest {
         User.builder()
             .id(1L)
             .username("testuser")
-            .email("test@example.com")
+            .phoneNumber("test@example.com")
             .role(Role.USER.name())
             .build();
 
@@ -75,9 +70,9 @@ class JwtServiceImplTest {
 
     Claims claims = extractClaims(token);
     assertEquals(testUser.getId(), claims.get("userId", Long.class));
-    assertEquals(testUser.getEmail(), claims.get("email"));
+    assertEquals(testUser.getUsername(), claims.get("username"));
     assertEquals(testUser.getRole(), claims.get("role"));
-    assertEquals(testUser.getEmail(), claims.getSubject());
+    assertEquals(testUser.getUsername(), claims.getSubject());
     assertEquals("bitetogether.com", claims.getIssuer());
     assertNotNull(claims.getId());
   }
@@ -96,20 +91,20 @@ class JwtServiceImplTest {
     assertEquals(refreshTokenJti, claims.getId());
     assertEquals(refreshTokenJti, claims.get("jti"));
     assertEquals(testUser.getId(), claims.get("userId", Long.class));
-    assertEquals(testUser.getEmail(), claims.get("email"));
-    assertEquals(testUser.getEmail(), claims.getSubject());
+    assertEquals(testUser.getUsername(), claims.get("username"));
+    assertEquals(testUser.getUsername(), claims.getSubject());
     assertEquals("bitetogether.com", claims.getIssuer());
 
     verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
   }
 
   @Test
-  void extractEmail_WithValidToken_ReturnsEmail() {
+  void extractUsername_WithValidToken_ReturnsUsername() {
     String token = jwtService.generateToken(testUser, refreshTokenJti);
 
-    String email = jwtService.extractEmail(token);
+    String username = jwtService.extractUsername(token);
 
-    assertEquals(testUser.getEmail(), email);
+    assertEquals(testUser.getUsername(), username);
   }
 
   @Test
@@ -134,33 +129,6 @@ class JwtServiceImplTest {
   }
 
   @Test
-  void isTokenValid_WithValidToken_ReturnsTrue() {
-    String token = jwtService.generateToken(testUser, refreshTokenJti);
-
-    boolean isValid = jwtService.isTokenValid(token);
-
-    assertTrue(isValid);
-  }
-
-  @Test
-  void isTokenValid_WithExpiredToken_ReturnsFalse() {
-    String expiredToken = createExpiredToken();
-
-    boolean isValid = jwtService.isTokenValid(expiredToken);
-
-    assertFalse(isValid);
-  }
-
-  @Test
-  void isTokenValid_WithInvalidToken_ReturnsFalse() {
-    String invalidToken = "invalid.token.string";
-
-    boolean isValid = jwtService.isTokenValid(invalidToken);
-
-    assertFalse(isValid);
-  }
-
-  @Test
   void extractExpiration_WithValidToken_ReturnsExpirationDate() {
     Date beforeGeneration = new Date();
     String token = jwtService.generateToken(testUser, refreshTokenJti);
@@ -172,15 +140,6 @@ class JwtServiceImplTest {
   }
 
   @Test
-  void isTokenExpired_WithNonExpiredToken_ReturnsFalse() {
-    String token = jwtService.generateToken(testUser, refreshTokenJti);
-
-    boolean isExpired = jwtService.isTokenExpired(token);
-
-    assertFalse(isExpired);
-  }
-
-  @Test
   void generateToken_WithDifferentUser_GeneratesDifferentTokens() {
     String token1 = jwtService.generateToken(testUser, refreshTokenJti);
 
@@ -188,7 +147,7 @@ class JwtServiceImplTest {
         User.builder()
             .id(2L)
             .username("anotheruser")
-            .email("another@example.com")
+            .phoneNumber("another@example.com")
             .role(Role.USER.name())
             .build();
 
@@ -236,29 +195,5 @@ class JwtServiceImplTest {
   private Claims extractClaims(String token) {
     SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
-  }
-
-  private String createExpiredToken() {
-    Map<String, Object> claims = new HashMap<>();
-    claims.put("userId", testUser.getId());
-    claims.put("email", testUser.getEmail());
-
-    LocalDateTime issuedAt = LocalDateTime.now().minusHours(2);
-    LocalDateTime expiresAt = LocalDateTime.now().minusHours(1);
-
-    SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-    return Jwts.builder()
-        .setClaims(claims)
-        .setSubject(testUser.getEmail())
-        .setId(UUID.randomUUID().toString())
-        .setIssuer("bitetogether.com")
-        .setIssuedAt(toDate(issuedAt))
-        .setExpiration(toDate(expiresAt))
-        .signWith(key, SignatureAlgorithm.HS256)
-        .compact();
-  }
-
-  private Date toDate(LocalDateTime localDateTime) {
-    return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
   }
 }

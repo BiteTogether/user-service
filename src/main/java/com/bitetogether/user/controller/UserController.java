@@ -1,10 +1,9 @@
 package com.bitetogether.user.controller;
 
 import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
-import static com.bitetogether.common.util.Constants.HAS_ROLE_ADMIN;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_USER;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.validation.ValidLongId;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
@@ -30,7 +29,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,9 +56,9 @@ public class UserController {
       summary = "Create user (Admin only)",
       description =
           "Creates a new user account. This endpoint is restricted to administrators only and is used for administrative user creation")
-//  @PreAuthorize(HAS_ROLE_ADMIN)
+  //  @PreAuthorize(HAS_ROLE_ADMIN)
   @PostMapping
-  public ResponseEntity<ApiResponse<Long>> createUser(
+  public ResponseEntity<ApiResponseDTO<Long>> createUser(
       @RequestBody CreateUserRequest createUserRequest) {
     return buildEntityResponse(userService.createUser(createUserRequest));
   }
@@ -70,7 +68,7 @@ public class UserController {
       description =
           "Updates the profile information of a specific user. Users can update their own profile or admins can update any user's profile")
   @PutMapping("/{id}")
-  public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+  public ResponseEntity<ApiResponseDTO<UserResponse>> updateUser(
       @PathVariable @ValidLongId Long id, @RequestBody @Valid UpdateUserRequest updateUserRequest) {
     return buildEntityResponse(userService.updateUser(id, updateUserRequest));
   }
@@ -80,7 +78,7 @@ public class UserController {
       description =
           "Deletes a user account permanently. This action removes all user data and cannot be undone")
   @DeleteMapping("/{id}")
-  public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable @ValidLongId Long id) {
+  public ResponseEntity<ApiResponseDTO<String>> deleteUser(@PathVariable @ValidLongId Long id) {
     return buildEntityResponse(userService.deleteUser(id));
   }
 
@@ -89,7 +87,7 @@ public class UserController {
       description =
           "Retrieves the detailed profile information of the currently authenticated user")
   @GetMapping("/me")
-  public ResponseEntity<ApiResponse<UserDetailsResponse>> getCurrentUser() {
+  public ResponseEntity<ApiResponseDTO<UserDetailsResponse>> getCurrentUser() {
     return buildEntityResponse(userService.getCurrentUser());
   }
 
@@ -97,7 +95,7 @@ public class UserController {
       summary = "Get user by ID",
       description = "Retrieves the profile information of a specific user by their user ID")
   @GetMapping("/{id}")
-  public ResponseEntity<ApiResponse<UserGetByIdResponse>> getUserById(
+  public ResponseEntity<ApiResponseDTO<UserGetByIdResponse>> getUserById(
       @PathVariable @ValidLongId Long id) {
     return buildEntityResponse(userService.getUserById(id));
   }
@@ -106,7 +104,7 @@ public class UserController {
       summary = "Get list of user details",
       description = "Retrieves detailed information for a list of users based on their IDs")
   @GetMapping
-  public ResponseEntity<ApiResponse<ListUserDetailsResponse>> getListUserDetails(
+  public ResponseEntity<ApiResponseDTO<ListUserDetailsResponse>> getListUserDetails(
       @RequestParam List<@Positive Long> userIds) {
     return buildEntityResponse(userService.getListUser(userIds));
   }
@@ -116,7 +114,7 @@ public class UserController {
       description =
           "Searches for users based on various filters such as name, email, or other criteria. Returns paginated results")
   @PostMapping("/search")
-  public ResponseEntity<ApiResponse<UserSearchResponse>> searchUsersWithFilter(
+  public ResponseEntity<ApiResponseDTO<UserSearchResponse>> searchUsersWithFilter(
       @RequestBody @Valid UserSearchRequest userSearchRequest) {
     return buildEntityResponse(userService.searchUsersWithFilter(userSearchRequest));
   }
@@ -126,7 +124,7 @@ public class UserController {
       description =
           "Retrieves the notification preferences for a specific user, including which types of notifications are enabled")
   @GetMapping("/{id}/notification-settings")
-  public ResponseEntity<ApiResponse<UserNotificationResponse>> getNotificationSettings(
+  public ResponseEntity<ApiResponseDTO<UserNotificationResponse>> getNotificationSettings(
       @PathVariable @ValidLongId Long id) {
     return buildEntityResponse(userService.getNotificationSettings(id));
   }
@@ -136,7 +134,7 @@ public class UserController {
       description =
           "Updates the notification preferences for a specific user, allowing them to enable or disable various notification types")
   @PutMapping("/{id}/notification-settings")
-  public ResponseEntity<ApiResponse<Void>> updateNotificationSettings(
+  public ResponseEntity<ApiResponseDTO<Void>> updateNotificationSettings(
       @PathVariable @ValidLongId Long id,
       @RequestBody @Valid UserNotificationSettingsRequest userNotificationSettingsRequest) {
     return buildEntityResponse(
@@ -148,7 +146,7 @@ public class UserController {
       description =
           "Updates the online/offline status of a user for real-time presence tracking in the application")
   @PutMapping("/{id}/online")
-  public ResponseEntity<ApiResponse<Void>> setUserOnlineStatus(
+  public ResponseEntity<ApiResponseDTO<Void>> setUserOnlineStatus(
       @PathVariable @ValidLongId Long id, @RequestBody @Valid UserOnlineStatus userOnlineStatus) {
     return buildEntityResponse(userService.setUserOnline(id, userOnlineStatus));
   }
@@ -158,7 +156,7 @@ public class UserController {
       description =
           "Uploads a new avatar image for the specified user. The image will be stored in Firebase Storage and the URL will be saved to the user profile. Supports JPEG, PNG, GIF, and WebP formats with a maximum size of 5MB")
   @PostMapping(value = "/{id}/avatar", consumes = "multipart/form-data")
-  public ResponseEntity<ApiResponse<String>> uploadAvatar(
+  public ResponseEntity<ApiResponseDTO<String>> uploadAvatar(
       @PathVariable @ValidLongId Long id, @RequestParam("file") MultipartFile file) {
     return buildEntityResponse(userService.uploadAvatar(id, file));
   }
@@ -168,7 +166,7 @@ public class UserController {
       description =
           "Deletes the avatar image of the specified user. The image will be removed from Firebase Storage and the avatar URL will be cleared from the user profile")
   @DeleteMapping("/{id}/avatar")
-  public ResponseEntity<ApiResponse<Void>> deleteAvatar(@PathVariable @ValidLongId Long id) {
+  public ResponseEntity<ApiResponseDTO<Void>> deleteAvatar(@PathVariable @ValidLongId Long id) {
     return buildEntityResponse(userService.deleteAvatar(id));
   }
 
@@ -179,7 +177,7 @@ public class UserController {
               + "This endpoint verifies the new phone number through Firebase Authentication and updates both the phone number and Firebase UID. "
               + "The phone number must be unique and verified through OTP")
   @PutMapping("/phone")
-  public ResponseEntity<ApiResponse<UpdatePhoneResponse>> updatePhone(
+  public ResponseEntity<ApiResponseDTO<UpdatePhoneResponse>> updatePhone(
       @RequestBody @Valid UpdatePhoneRequest updatePhoneRequest) {
     return buildEntityResponse(userService.updatePhone(updatePhoneRequest));
   }
@@ -191,7 +189,7 @@ public class UserController {
               + "For USERNAME: Checks format (6-20 chars, letters, numbers, dots, underscores) and availability. "
               + "For PHONE: Checks if phone number is already registered in the system")
   @PostMapping("/validate")
-  public ResponseEntity<ApiResponse<ValidateUserCriteriaResponse>> validateUserCriteria(
+  public ResponseEntity<ApiResponseDTO<ValidateUserCriteriaResponse>> validateUserCriteria(
       @RequestBody @Valid ValidateUserCriteriaRequest criteria) {
     return buildEntityResponse(userService.validateUserCriteria(criteria));
   }

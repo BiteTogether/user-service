@@ -3,7 +3,7 @@ package com.bitetogether.user.controller;
 import static com.bitetogether.common.util.ApiResponseUtil.buildEntityResponse;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_AUTH;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.user.dto.auth.request.FirebaseTokenRequest;
 import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.request.RegisterRequest;
@@ -41,7 +41,7 @@ public class AuthController {
               + "Returns access token and refresh token for subsequent API calls. "
               + "If user doesn't exist, returns error - user should register first")
   @PostMapping("/login")
-  public ResponseEntity<ApiResponse<TokenResponse>> login(
+  public ResponseEntity<ApiResponseDTO<TokenResponse>> login(
       @Valid @RequestBody FirebaseTokenRequest firebaseLoginRequest) {
     return buildEntityResponse(authService.firebaseLogin(firebaseLoginRequest));
   }
@@ -53,7 +53,7 @@ public class AuthController {
               + "User can optionally provide username and full name. "
               + "Returns access token and refresh token after successful registration")
   @PostMapping("/register")
-  public ResponseEntity<ApiResponse<TokenResponse>> register(
+  public ResponseEntity<ApiResponseDTO<TokenResponse>> register(
       @Valid @RequestBody RegisterRequest registerRequest) {
     return buildEntityResponse(authService.register(registerRequest));
   }
@@ -63,7 +63,7 @@ public class AuthController {
       description =
           "Logs out the currently authenticated user by invalidating their refresh token and clearing the session")
   @DeleteMapping("/logout")
-  public ResponseEntity<ApiResponse<Void>> logOut() {
+  public ResponseEntity<ApiResponseDTO<Void>> logOut() {
     return buildEntityResponse(authService.logOut());
   }
 
@@ -72,7 +72,7 @@ public class AuthController {
       description =
           "Generates a new access token using a valid refresh token when the current access token expires")
   @PostMapping("/tokens/refresh")
-  public ResponseEntity<ApiResponse<RefreshTokenReponse>> refreshToken(
+  public ResponseEntity<ApiResponseDTO<RefreshTokenReponse>> refreshToken(
       @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
     return buildEntityResponse(authService.refreshToken(refreshTokenRequest));
   }
@@ -82,7 +82,7 @@ public class AuthController {
       description =
           "Saves or updates the device token for push notifications (FCM/APNS) for the authenticated user")
   @PostMapping("/tokens/device-token")
-  public ResponseEntity<ApiResponse<Void>> saveDeviceToken(
+  public ResponseEntity<ApiResponseDTO<Void>> saveDeviceToken(
       @Valid @RequestBody SaveDeviceTokenRequest saveDeviceTokenRequest) {
     return buildEntityResponse(authService.saveDeviceToken(saveDeviceTokenRequest));
   }
@@ -92,7 +92,7 @@ public class AuthController {
       description =
           "Retrieves the currently saved device token for push notifications for the authenticated user")
   @GetMapping("/tokens/device-token")
-  public ResponseEntity<ApiResponse<SaveDeviceTokenResponse>> getDeviceToken() {
+  public ResponseEntity<ApiResponseDTO<SaveDeviceTokenResponse>> getDeviceToken() {
     return buildEntityResponse(authService.getDeviceToken());
   }
 }

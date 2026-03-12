@@ -4,8 +4,8 @@ import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 import static com.bitetogether.user.util.AuthUtils.hasRole;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
@@ -37,7 +37,7 @@ public class FriendServiceImpl implements FriendService {
   UserRepository userRepository;
 
   @Override
-  public ApiResponsePagination<FriendResponse> getFriendsList(int page, int size) {
+  public ApiResponsePaginationDTO<FriendResponse> getFriendsList(int page, int size) {
     Long currentUserId = getCurrentUserId();
 
     Pageable pageable = PageRequest.of(page, size);
@@ -56,7 +56,7 @@ public class FriendServiceImpl implements FriendService {
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteFriend(Long friendId) {
+  public ApiResponseDTO<String> deleteFriend(Long friendId) {
     Long currentUserId = getCurrentUserId();
     User currentUser = userHelper.findUserById(currentUserId);
     User friendToRemove = validateDeleteFriendRequest(friendId, currentUser);

@@ -4,7 +4,7 @@ import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 import static com.bitetogether.user.util.AuthUtils.getAccessTokenFromHeader;
 import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
@@ -47,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
   private static final String PHONE_NUMBER_CLAIM = "phone_number";
 
   @Override
-  public ApiResponse<TokenResponse> firebaseLogin(FirebaseTokenRequest firebaseLoginRequest) {
+  public ApiResponseDTO<TokenResponse> firebaseLogin(FirebaseTokenRequest firebaseLoginRequest) {
     // Verify Firebase ID Token
     FirebaseToken decodedToken =
         firebaseAuthService.verifyIdToken(firebaseLoginRequest.getIdToken());
@@ -81,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public ApiResponse<TokenResponse> register(RegisterRequest registerRequest) {
+  public ApiResponseDTO<TokenResponse> register(RegisterRequest registerRequest) {
     // Verify Firebase ID Token
     FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(registerRequest.getIdToken());
 
@@ -206,7 +206,7 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public ApiResponse<Void> logOut() {
+  public ApiResponseDTO<Void> logOut() {
     Long currentUserId = getCurrentUserId();
 
     String accessToken = getAccessTokenFromHeader();
@@ -233,7 +233,7 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public ApiResponse<RefreshTokenReponse> refreshToken(RefreshTokenRequest refreshTokenRequest) {
+  public ApiResponseDTO<RefreshTokenReponse> refreshToken(RefreshTokenRequest refreshTokenRequest) {
     String refreshToken = refreshTokenRequest.getRefreshToken();
 
     String username = jwtService.extractUsername(refreshToken);
@@ -262,7 +262,7 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public ApiResponse<Void> saveDeviceToken(SaveDeviceTokenRequest requestDto) {
+  public ApiResponseDTO<Void> saveDeviceToken(SaveDeviceTokenRequest requestDto) {
     Long currentUserId = getCurrentUserId();
 
     String accessToken = getAccessTokenFromHeader();
@@ -279,7 +279,7 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public ApiResponse<SaveDeviceTokenResponse> getDeviceToken() {
+  public ApiResponseDTO<SaveDeviceTokenResponse> getDeviceToken() {
     Long currentUserId = getCurrentUserId();
 
     String accessToken = getAccessTokenFromHeader();

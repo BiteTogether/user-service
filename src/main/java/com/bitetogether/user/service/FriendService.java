@@ -1,11 +1,11 @@
 package com.bitetogether.user.service;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
 
 public interface FriendService {
-  ApiResponsePagination<FriendResponse> getFriendsList(int page, int size);
+  ApiResponsePaginationDTO<FriendResponse> getFriendsList(int page, int size);
 
-  ApiResponse<String> deleteFriend(Long id);
+  ApiResponseDTO<String> deleteFriend(Long id);
 }

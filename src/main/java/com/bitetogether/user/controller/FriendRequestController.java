@@ -5,8 +5,8 @@ import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
 import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
 import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FRIEND_REQUEST;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.validation.ValidLongId;
 import com.bitetogether.common.validation.ValidPage;
 import com.bitetogether.common.validation.ValidSize;
@@ -41,7 +41,7 @@ public class FriendRequestController {
       description =
           "Sends a friend request from the authenticated user to another user specified by the receiver ID")
   @PostMapping("/{receiverId}")
-  public ResponseEntity<ApiResponse<Long>> createFriendRequest(@PathVariable Long receiverId) {
+  public ResponseEntity<ApiResponseDTO<Long>> createFriendRequest(@PathVariable Long receiverId) {
     return buildEntityResponse(friendRequestService.createFriendRequest(receiverId));
   }
 
@@ -50,7 +50,8 @@ public class FriendRequestController {
       description =
           "Accepts a pending friend request. This creates a friendship connection between the two users")
   @PostMapping("/{id}/accept")
-  public ResponseEntity<ApiResponse<Void>> acceptFriendRequest(@PathVariable @ValidLongId Long id) {
+  public ResponseEntity<ApiResponseDTO<Void>> acceptFriendRequest(
+      @PathVariable @ValidLongId Long id) {
     return buildEntityResponse(friendRequestService.acceptFriendRequest(id));
   }
 
@@ -59,7 +60,7 @@ public class FriendRequestController {
       description =
           "Deletes or rejects a friend request. Can be used to cancel a sent request or reject a received request")
   @DeleteMapping("/{id}")
-  public ResponseEntity<ApiResponse<String>> deleteFriendRequest(
+  public ResponseEntity<ApiResponseDTO<String>> deleteFriendRequest(
       @PathVariable @ValidLongId Long id) {
     return buildEntityResponse(friendRequestService.deleteFriendRequest(id));
   }
@@ -69,7 +70,7 @@ public class FriendRequestController {
       description =
           "Retrieves a paginated list of all friend requests sent by the authenticated user that are still pending")
   @GetMapping("/sent")
-  public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getSentFriendRequests(
+  public ResponseEntity<ApiResponsePaginationDTO<FriendRequestResponse>> getSentFriendRequests(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) @ValidPage int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) @ValidSize int size) {
     return buildEntityResponse(friendRequestService.getSentFriendRequests(page, size));
@@ -80,7 +81,7 @@ public class FriendRequestController {
       description =
           "Retrieves a paginated list of all pending friend requests received by the authenticated user")
   @GetMapping("/received")
-  public ResponseEntity<ApiResponsePagination<FriendRequestResponse>> getReceivedFriendRequests(
+  public ResponseEntity<ApiResponsePaginationDTO<FriendRequestResponse>> getReceivedFriendRequests(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) @ValidPage int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) @ValidSize int size) {
     return buildEntityResponse(friendRequestService.getReceivedFriendRequests(page, size));

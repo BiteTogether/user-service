@@ -4,12 +4,14 @@ import static com.bitetogether.common.util.ApiResponseUtil.buildApiResponse;
 import static com.bitetogether.user.util.AuthUtils.getCurrentUserId;
 import static com.bitetogether.user.util.AuthUtils.hasRole;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
+import com.bitetogether.user.dto.event.UserCreatedEvent;
+import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
@@ -25,8 +27,6 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
-import com.bitetogether.user.dto.event.UserCreatedEvent;
-import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
@@ -75,7 +75,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
-  public ApiResponse<Long> createUser(CreateUserRequest createUserRequest) {
+  public ApiResponseDTO<Long> createUser(CreateUserRequest createUserRequest) {
     validateCreateUserRequest(createUserRequest);
 
     User newUser = userMapper.toEntity(createUserRequest);
@@ -112,7 +112,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
-  public ApiResponse<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest) {
+  public ApiResponseDTO<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest) {
     User existingUser = userHelper.findUserById(id);
 
     validateUserAuthorization(id);
@@ -156,7 +156,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteUser(Long id) {
+  public ApiResponseDTO<String> deleteUser(Long id) {
     User existingUser = userHelper.findUserById(id);
 
     validateUserAuthorization(id);
@@ -189,7 +189,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<UserDetailsResponse> getCurrentUser() {
+  public ApiResponseDTO<UserDetailsResponse> getCurrentUser() {
     Long currentUserId = getCurrentUserId();
     User currentUser = userHelper.findUserById(currentUserId);
 
@@ -203,7 +203,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<UserGetByIdResponse> getUserById(Long id) {
+  public ApiResponseDTO<UserGetByIdResponse> getUserById(Long id) {
     User user = userHelper.findUserById(id);
 
     UserGetByIdResponse userGetByIdResponse = userMapper.toUserGetByIdResponse(user);
@@ -263,7 +263,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<UserSearchResponse> searchUsersWithFilter(
+  public ApiResponseDTO<UserSearchResponse> searchUsersWithFilter(
       UserSearchRequest userSearchRequest) {
     String keyword = userSearchRequest.getKeyword().trim();
 
@@ -285,7 +285,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<UserNotificationResponse> getNotificationSettings(Long id) {
+  public ApiResponseDTO<UserNotificationResponse> getNotificationSettings(Long id) {
     validateUserAuthorization(id);
 
     User user = userHelper.findUserById(id);
@@ -299,7 +299,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<Void> updateNotificationSettings(
+  public ApiResponseDTO<Void> updateNotificationSettings(
       Long id, UserNotificationSettingsRequest userNotificationSettingsRequest) {
     validateUserAuthorization(id);
 
@@ -314,7 +314,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus) {
+  public ApiResponseDTO<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus) {
     validateUserAuthorization(id);
 
     User user = userHelper.findUserById(id);
@@ -340,7 +340,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<ListUserDetailsResponse> getListUser(List<Long> userIds) {
+  public ApiResponseDTO<ListUserDetailsResponse> getListUser(List<Long> userIds) {
     Long currentUserId = getCurrentUserId();
 
     if (!userIds.contains(currentUserId)) {
@@ -362,7 +362,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
-  public ApiResponse<String> uploadAvatar(Long userId, MultipartFile file) {
+  public ApiResponseDTO<String> uploadAvatar(Long userId, MultipartFile file) {
     Long currentUserId = getCurrentUserId();
 
     // Check if user is updating their own avatar or has admin role
@@ -390,7 +390,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
-  public ApiResponse<Void> deleteAvatar(Long userId) {
+  public ApiResponseDTO<Void> deleteAvatar(Long userId) {
     Long currentUserId = getCurrentUserId();
 
     // Check if user is deleting their own avatar or has admin role
@@ -417,7 +417,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponse<ValidateUserCriteriaResponse> validateUserCriteria(
+  public ApiResponseDTO<ValidateUserCriteriaResponse> validateUserCriteria(
       ValidateUserCriteriaRequest criteria) {
     boolean isValid;
     String message;
@@ -526,7 +526,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
-  public ApiResponse<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest) {
+  public ApiResponseDTO<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest) {
     // Get current authenticated user ID
     Long userId = getCurrentUserId();
 
@@ -587,30 +587,30 @@ public class UserServiceImpl implements UserService {
 
   private void publishUserCreatedEvent(User user) {
     UserCreatedEvent event =
-            UserCreatedEvent.builder()
-                    .userId(user.getId())
-                    .username(user.getUsername())
-                    .fullName(user.getFullName())
-                    .phoneNumber(user.getPhoneNumber())
-                    .avatar(user.getAvatar())
-                    .eventTimestamp(LocalDateTime.now())
-                    .version(0L) // Initial version
-                    .build();
+        UserCreatedEvent.builder()
+            .userId(user.getId())
+            .username(user.getUsername())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .avatar(user.getAvatar())
+            .eventTimestamp(LocalDateTime.now())
+            .version(0L) // Initial version
+            .build();
 
     eventPublisherService.publishUserCreatedEvent(event);
   }
 
   private void publishUserUpdatedEvent(User user, Long version) {
     UserUpdatedEvent event =
-            UserUpdatedEvent.builder()
-                    .userId(user.getId())
-                    .username(user.getUsername())
-                    .fullName(user.getFullName())
-                    .phoneNumber(user.getPhoneNumber())
-                    .avatar(user.getAvatar())
-                    .eventTimestamp(LocalDateTime.now())
-                    .version(version)
-                    .build();
+        UserUpdatedEvent.builder()
+            .userId(user.getId())
+            .username(user.getUsername())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .avatar(user.getAvatar())
+            .eventTimestamp(LocalDateTime.now())
+            .version(version)
+            .build();
 
     eventPublisherService.publishUserUpdatedEvent(event);
   }

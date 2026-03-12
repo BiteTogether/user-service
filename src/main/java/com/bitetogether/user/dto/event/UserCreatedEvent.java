@@ -1,11 +1,11 @@
 package com.bitetogether.user.dto.event;
 
-import lombok.NoArgsConstructor;
-import lombok.Data;
-import lombok.Builder;
-import lombok.AllArgsConstructor;
-import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
@@ -23,10 +23,3 @@ public class UserCreatedEvent {
 
   private Long version; // For optimistic locking
 }
-
-
-
-
-
-
-

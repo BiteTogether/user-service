@@ -1,8 +1,8 @@
 package com.bitetogether.user.service;
 
-import com.bitetogether.user.dto.event.UserUpdatedEvent;
-import com.bitetogether.user.dto.event.UserCreatedEvent;
 import com.bitetogether.user.dto.event.CreateConversationEvent;
+import com.bitetogether.user.dto.event.UserCreatedEvent;
+import com.bitetogether.user.dto.event.UserUpdatedEvent;
 
 public interface EventPublisherService {
   void publishUserCreatedEvent(UserCreatedEvent event);
@@ -11,9 +11,3 @@ public interface EventPublisherService {
 
   void publishCreateConversationEvent(CreateConversationEvent event);
 }
-
-
-
-
-
-

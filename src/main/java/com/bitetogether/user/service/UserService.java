@@ -1,6 +1,6 @@
 package com.bitetogether.user.service;
 
-import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
@@ -20,33 +20,33 @@ import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
-  ApiResponse<Long> createUser(CreateUserRequest createUserRequest);
+  ApiResponseDTO<Long> createUser(CreateUserRequest createUserRequest);
 
-  ApiResponse<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest);
+  ApiResponseDTO<UserResponse> updateUser(Long id, UpdateUserRequest updateUserRequest);
 
-  ApiResponse<String> deleteUser(Long id);
+  ApiResponseDTO<String> deleteUser(Long id);
 
-  ApiResponse<UserDetailsResponse> getCurrentUser();
+  ApiResponseDTO<UserDetailsResponse> getCurrentUser();
 
-  ApiResponse<UserGetByIdResponse> getUserById(Long id);
+  ApiResponseDTO<UserGetByIdResponse> getUserById(Long id);
 
-  ApiResponse<UserSearchResponse> searchUsersWithFilter(UserSearchRequest userSearchRequest);
+  ApiResponseDTO<UserSearchResponse> searchUsersWithFilter(UserSearchRequest userSearchRequest);
 
-  ApiResponse<UserNotificationResponse> getNotificationSettings(Long id);
+  ApiResponseDTO<UserNotificationResponse> getNotificationSettings(Long id);
 
-  ApiResponse<Void> updateNotificationSettings(
+  ApiResponseDTO<Void> updateNotificationSettings(
       Long id, UserNotificationSettingsRequest userNotificationSettingsRequest);
 
-  ApiResponse<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus);
+  ApiResponseDTO<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus);
 
-  ApiResponse<ListUserDetailsResponse> getListUser(List<Long> request);
+  ApiResponseDTO<ListUserDetailsResponse> getListUser(List<Long> request);
 
-  ApiResponse<String> uploadAvatar(Long userId, MultipartFile file);
+  ApiResponseDTO<String> uploadAvatar(Long userId, MultipartFile file);
 
-  ApiResponse<Void> deleteAvatar(Long userId);
+  ApiResponseDTO<Void> deleteAvatar(Long userId);
 
-  ApiResponse<ValidateUserCriteriaResponse> validateUserCriteria(
+  ApiResponseDTO<ValidateUserCriteriaResponse> validateUserCriteria(
       ValidateUserCriteriaRequest criteria);
 
-  ApiResponse<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest);
+  ApiResponseDTO<UpdatePhoneResponse> updatePhone(UpdatePhoneRequest updatePhoneRequest);
 }

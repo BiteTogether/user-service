@@ -1,6 +1,5 @@
 package com.bitetogether.user.util;
 
-import static com.bitetogether.common.util.Constants.CLAIM_EMAIL;
 import static com.bitetogether.common.util.Constants.CLAIM_USER_ID;
 import static com.bitetogether.common.util.Constants.CLAIM_USER_NAME;
 
@@ -53,15 +52,6 @@ public final class AuthUtils {
     if (jwt != null) {
       Object userUsernameObj = jwt.getClaim(CLAIM_USER_NAME);
       return userUsernameObj instanceof String username ? username : null;
-    }
-    return null;
-  }
-
-  public static String getCurrentUserEmail() {
-    Jwt jwt = getCurrentJwt();
-    if (jwt != null) {
-      Object userEmailObj = jwt.getClaim(CLAIM_EMAIL);
-      return userEmailObj instanceof String email ? email : null;
     }
     return null;
   }

@@ -9,8 +9,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
@@ -50,21 +50,9 @@ class FriendServiceImplTest {
 
   @BeforeEach
   void setUp() {
-    currentUser =
-        User.builder()
-            .id(1L)
-            .username("currentuser")
-            .email("current@example.com")
-            .friends(new HashSet<>())
-            .build();
+    currentUser = User.builder().id(1L).username("currentuser").friends(new HashSet<>()).build();
 
-    friendUser =
-        User.builder()
-            .id(2L)
-            .username("frienduser")
-            .email("friend@example.com")
-            .friends(new HashSet<>())
-            .build();
+    friendUser = User.builder().id(2L).username("frienduser").friends(new HashSet<>()).build();
   }
 
   @Test
@@ -83,7 +71,7 @@ class FriendServiceImplTest {
       when(userRepository.getFriendsByUserId(currentUserId, pageable)).thenReturn(friendPage);
       when(userMapper.toFriendResponse(friendUser)).thenReturn(friendResponse);
 
-      ApiResponsePagination<FriendResponse> response = friendService.getFriendsList(page, size);
+      ApiResponsePaginationDTO<FriendResponse> response = friendService.getFriendsList(page, size);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -111,7 +99,7 @@ class FriendServiceImplTest {
 
       when(userRepository.getFriendsByUserId(currentUserId, pageable)).thenReturn(friendPage);
 
-      ApiResponsePagination<FriendResponse> response = friendService.getFriendsList(page, size);
+      ApiResponsePaginationDTO<FriendResponse> response = friendService.getFriendsList(page, size);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -138,7 +126,7 @@ class FriendServiceImplTest {
       when(userHelper.saveUser(currentUser)).thenReturn(currentUser);
       when(userHelper.saveUser(friendUser)).thenReturn(friendUser);
 
-      ApiResponse<String> response = friendService.deleteFriend(friendId);
+      ApiResponseDTO<String> response = friendService.deleteFriend(friendId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -185,7 +173,7 @@ class FriendServiceImplTest {
       when(userHelper.saveUser(currentUser)).thenReturn(currentUser);
       when(userHelper.saveUser(friendUser)).thenReturn(friendUser);
 
-      ApiResponse<String> response = friendService.deleteFriend(friendId);
+      ApiResponseDTO<String> response = friendService.deleteFriend(friendId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
@@ -201,12 +189,7 @@ class FriendServiceImplTest {
     Long currentUserId = 1L;
     Long friendId = 2L;
     User anotherFriend =
-        User.builder()
-            .id(3L)
-            .username("anotherfriend")
-            .email("another@example.com")
-            .friends(new HashSet<>())
-            .build();
+        User.builder().id(3L).username("anotherfriend").friends(new HashSet<>()).build();
 
     currentUser.getFriends().add(friendUser);
     currentUser.getFriends().add(anotherFriend);
@@ -222,7 +205,7 @@ class FriendServiceImplTest {
       when(userHelper.saveUser(currentUser)).thenReturn(currentUser);
       when(userHelper.saveUser(friendUser)).thenReturn(friendUser);
 
-      ApiResponse<String> response = friendService.deleteFriend(friendId);
+      ApiResponseDTO<String> response = friendService.deleteFriend(friendId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());

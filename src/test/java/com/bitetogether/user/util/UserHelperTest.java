@@ -29,7 +29,7 @@ class UserHelperTest {
 
   @BeforeEach
   void setUp() {
-    testUser = User.builder().id(1L).username("testuser").email("test@example.com").build();
+    testUser = User.builder().id(1L).username("testuser").build();
   }
 
   @Test
@@ -43,7 +43,6 @@ class UserHelperTest {
     assertNotNull(result);
     assertEquals(testUser.getId(), result.getId());
     assertEquals(testUser.getUsername(), result.getUsername());
-    assertEquals(testUser.getEmail(), result.getEmail());
 
     verify(userRepository, times(1)).findById(userId);
   }
@@ -64,8 +63,7 @@ class UserHelperTest {
   @Test
   void findFriendById_WithExistingFriend_ReturnsFriend() {
     Long friendId = 2L;
-    User friend =
-        User.builder().id(friendId).username("frienduser").email("friend@example.com").build();
+    User friend = User.builder().id(friendId).username("frienduser").build();
 
     when(userRepository.findById(friendId)).thenReturn(Optional.of(friend));
 
@@ -74,7 +72,6 @@ class UserHelperTest {
     assertNotNull(result);
     assertEquals(friend.getId(), result.getId());
     assertEquals(friend.getUsername(), result.getUsername());
-    assertEquals(friend.getEmail(), result.getEmail());
 
     verify(userRepository, times(1)).findById(friendId);
   }
@@ -101,15 +98,13 @@ class UserHelperTest {
     assertNotNull(result);
     assertEquals(testUser.getId(), result.getId());
     assertEquals(testUser.getUsername(), result.getUsername());
-    assertEquals(testUser.getEmail(), result.getEmail());
 
     verify(userRepository, times(1)).save(testUser);
   }
 
   @Test
   void saveUser_WithUpdatedUser_ReturnsSavedUser() {
-    User updatedUser =
-        User.builder().id(1L).username("updateduser").email("updated@example.com").build();
+    User updatedUser = User.builder().id(1L).username("updateduser").build();
 
     when(userRepository.save(updatedUser)).thenReturn(updatedUser);
 
@@ -118,15 +113,14 @@ class UserHelperTest {
     assertNotNull(result);
     assertEquals(updatedUser.getId(), result.getId());
     assertEquals(updatedUser.getUsername(), result.getUsername());
-    assertEquals(updatedUser.getEmail(), result.getEmail());
 
     verify(userRepository, times(1)).save(updatedUser);
   }
 
   @Test
   void saveUser_WithNewUser_ReturnsSavedUser() {
-    User newUser = User.builder().id(null).username("newuser").email("new@example.com").build();
-    User savedUser = User.builder().id(10L).username("newuser").email("new@example.com").build();
+    User newUser = User.builder().id(null).username("newuser").build();
+    User savedUser = User.builder().id(10L).username("newuser").build();
 
     when(userRepository.save(newUser)).thenReturn(savedUser);
 
@@ -136,7 +130,6 @@ class UserHelperTest {
     assertNotNull(result.getId());
     assertEquals(10L, result.getId());
     assertEquals(newUser.getUsername(), result.getUsername());
-    assertEquals(newUser.getEmail(), result.getEmail());
 
     verify(userRepository, times(1)).save(newUser);
   }
