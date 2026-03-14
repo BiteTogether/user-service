@@ -1,6 +1,17 @@
 spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    
+    properties:
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL}
+      
+      ssl.keystore.type: PKCS12
+      ssl.keystore.location: classpath:client.keystore.p12
+      ssl.keystore.password: ${KAFKA_SSL_KEYSTORE_PASSWORD}
+      
+      ssl.truststore.location: classpath:client.truststore.jks
+      ssl.truststore.password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+      
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
