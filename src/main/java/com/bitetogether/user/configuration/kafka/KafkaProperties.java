@@ -10,8 +10,36 @@ import org.springframework.stereotype.Component;
 public class KafkaProperties {
 
   private String bootstrapServers;
+  private Properties properties;
   private Producer producer;
   private Topic topic;
+
+  @Data
+  public static class Properties {
+    private String securityProtocol;
+    private Ssl ssl;
+
+    @Data
+    public static class Ssl {
+      private Keystore keystore;
+      private Truststore truststore;
+      private String endpointIdentificationAlgorithm;
+
+      @Data
+      public static class Keystore {
+        private String type;
+        private String location;
+        private String password;
+      }
+
+      @Data
+      public static class Truststore {
+        private String type;
+        private String location;
+        private String password;
+      }
+    }
+  }
 
   @Data
   public static class Producer {
