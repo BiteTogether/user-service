@@ -19,28 +19,37 @@ import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
+import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
+import com.bitetogether.user.dto.user.response.UpdatePhoneResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
+import com.bitetogether.user.enums.ValidateCriteria;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
-import com.bitetogether.user.service.EventPublisherService;
+import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.util.AuthUtils;
+import com.bitetogether.user.util.UserEventPublisherHelper;
 import com.bitetogether.user.util.UserHelper;
+import com.google.firebase.auth.FirebaseToken;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +58,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 @SuppressWarnings({
@@ -69,7 +79,11 @@ class UserServiceImplTest {
 
   @Mock private RefreshTokenRepository refreshTokenRepository;
 
-  @Mock private EventPublisherService eventPublisherService;
+  @Mock private UserEventPublisherHelper userEventPublisherHelper;
+
+  @Mock private FirebaseStorageServiceImpl firebaseStorageService;
+
+  @Mock private FirebaseAuthService firebaseAuthService;
 
   @InjectMocks private UserServiceImpl userService;
 
@@ -96,6 +110,7 @@ class UserServiceImplTest {
             .inAppNotificationsEnabled(false)
             .isOnline(false)
             .lastSeen(LocalDateTime.now())
+            .version(1L)
             .build();
 
     friendUser =
@@ -152,6 +167,7 @@ class UserServiceImplTest {
     verify(userRepository, times(1)).existsByUsername(createUserRequest.getUsername());
     verify(userRepository, times(1)).existsByPhoneNumber(createUserRequest.getPhoneNumber());
     verify(userHelper, times(1)).saveUser(any(User.class));
+    verify(userEventPublisherHelper, times(1)).publishUserCreatedEvent(savedUser);
   }
 
   @Test
@@ -192,6 +208,7 @@ class UserServiceImplTest {
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     verify(userHelper, times(1)).saveUser(any(User.class));
+    verify(userEventPublisherHelper, times(1)).publishUserCreatedEvent(savedUser);
   }
 
   @Test
@@ -218,6 +235,8 @@ class UserServiceImplTest {
       verify(userHelper, times(1)).findUserById(userId);
       verify(userMapper, times(1)).updateUserFromRequest(updateUserRequest, testUser);
       verify(userHelper, times(1)).saveUser(testUser);
+      verify(userEventPublisherHelper, times(1))
+          .publishUserUpdatedEvent(testUser, testUser.getVersion());
     }
   }
 
@@ -586,5 +605,276 @@ class UserServiceImplTest {
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     }
+  }
+
+  @Test
+  void uploadAvatar_WithValidRequest_ReturnsAvatarUrl() {
+    Long userId = 1L;
+    MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+    String avatarUrl = "https://firebase.storage/avatar.jpg";
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
+      authUtilsMock.when(() -> AuthUtils.hasRole(Role.ADMIN.name())).thenReturn(false);
+
+      when(userHelper.findUserById(userId)).thenReturn(testUser);
+      when(firebaseStorageService.uploadAvatar(file, userId)).thenReturn(avatarUrl);
+
+      ApiResponseDTO<String> response = userService.uploadAvatar(userId, file);
+
+      assertNotNull(response);
+      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      assertEquals("Avatar uploaded successfully", response.getMessage());
+      assertEquals(avatarUrl, response.getData());
+
+      verify(firebaseStorageService, times(1)).uploadAvatar(file, userId);
+      verify(userRepository, times(1)).save(testUser);
+    }
+  }
+
+  @Test
+  void uploadAvatar_WithExistingAvatar_DeletesOldAvatar() {
+    Long userId = 1L;
+    String oldAvatarUrl = "https://firebase.storage/old-avatar.jpg";
+    String newAvatarUrl = "https://firebase.storage/new-avatar.jpg";
+    testUser.setAvatar(oldAvatarUrl);
+    MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
+      authUtilsMock.when(() -> AuthUtils.hasRole(Role.ADMIN.name())).thenReturn(false);
+
+      when(userHelper.findUserById(userId)).thenReturn(testUser);
+      when(firebaseStorageService.uploadAvatar(file, userId)).thenReturn(newAvatarUrl);
+
+      ApiResponseDTO<String> response = userService.uploadAvatar(userId, file);
+
+      assertNotNull(response);
+      assertEquals(newAvatarUrl, response.getData());
+
+      verify(firebaseStorageService, times(1)).deleteFile(oldAvatarUrl);
+      verify(firebaseStorageService, times(1)).uploadAvatar(file, userId);
+    }
+  }
+
+  @Test
+  void uploadAvatar_UnauthorizedUser_ThrowsException() {
+    Long userId = 1L;
+    Long differentUserId = 2L;
+    MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(differentUserId);
+      authUtilsMock.when(() -> AuthUtils.hasRole(Role.ADMIN.name())).thenReturn(false);
+
+      assertThrows(AppException.class, () -> userService.uploadAvatar(userId, file));
+
+      verify(firebaseStorageService, never()).uploadAvatar(any(), any());
+    }
+  }
+
+  @Test
+  void deleteAvatar_WithValidRequest_DeletesAvatar() {
+    Long userId = 1L;
+    String avatarUrl = "https://firebase.storage/avatar.jpg";
+    testUser.setAvatar(avatarUrl);
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
+      authUtilsMock.when(() -> AuthUtils.hasRole(Role.ADMIN.name())).thenReturn(false);
+
+      when(userHelper.findUserById(userId)).thenReturn(testUser);
+      when(firebaseStorageService.deleteFile(avatarUrl)).thenReturn(true);
+
+      ApiResponseDTO<Void> response = userService.deleteAvatar(userId);
+
+      assertNotNull(response);
+      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      assertEquals("Avatar deleted successfully", response.getMessage());
+
+      verify(firebaseStorageService, times(1)).deleteFile(avatarUrl);
+      verify(userRepository, times(1)).save(testUser);
+    }
+  }
+
+  @Test
+  void deleteAvatar_WithoutAvatar_ThrowsException() {
+    Long userId = 1L;
+    testUser.setAvatar(null);
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
+      authUtilsMock.when(() -> AuthUtils.hasRole(Role.ADMIN.name())).thenReturn(false);
+
+      when(userHelper.findUserById(userId)).thenReturn(testUser);
+
+      assertThrows(AppException.class, () -> userService.deleteAvatar(userId));
+
+      verify(firebaseStorageService, never()).deleteFile(any());
+    }
+  }
+
+  @Test
+  void updatePhone_WithValidRequest_UpdatesPhone() {
+    Long userId = 1L;
+    String newPhoneNumber = "+84987654321";
+    String newFirebaseUid = "new-firebase-uid";
+    String idToken = "valid-id-token";
+
+    UpdatePhoneRequest request = new UpdatePhoneRequest();
+    request.setIdToken(idToken);
+
+    FirebaseToken firebaseToken = org.mockito.Mockito.mock(FirebaseToken.class);
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", newPhoneNumber);
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
+
+      when(firebaseAuthService.verifyIdToken(idToken)).thenReturn(firebaseToken);
+      when(firebaseToken.getUid()).thenReturn(newFirebaseUid);
+      when(firebaseToken.getClaims()).thenReturn(claims);
+      when(userHelper.findUserById(userId)).thenReturn(testUser);
+      when(userRepository.findByPhoneNumber(newPhoneNumber)).thenReturn(Optional.empty());
+      when(userRepository.save(testUser)).thenReturn(testUser);
+
+      ApiResponseDTO<UpdatePhoneResponse> response = userService.updatePhone(request);
+
+      assertNotNull(response);
+      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      assertEquals("Phone number updated successfully", response.getMessage());
+      assertEquals(newPhoneNumber, response.getData().getPhoneNumber());
+      assertEquals(newFirebaseUid, response.getData().getFirebaseUid());
+
+      verify(userRepository, times(1)).save(testUser);
+    }
+  }
+
+  @Test
+  void updatePhone_WithPhoneUsedByOtherUser_ThrowsException() {
+    Long userId = 1L;
+    String newPhoneNumber = "+84987654321";
+    String newFirebaseUid = "new-firebase-uid";
+    String idToken = "valid-id-token";
+
+    UpdatePhoneRequest request = new UpdatePhoneRequest();
+    request.setIdToken(idToken);
+
+    FirebaseToken firebaseToken = org.mockito.Mockito.mock(FirebaseToken.class);
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", newPhoneNumber);
+
+    User otherUser = User.builder().id(2L).phoneNumber(newPhoneNumber).build();
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
+
+      when(firebaseAuthService.verifyIdToken(idToken)).thenReturn(firebaseToken);
+      when(firebaseToken.getUid()).thenReturn(newFirebaseUid);
+      when(firebaseToken.getClaims()).thenReturn(claims);
+      when(userHelper.findUserById(userId)).thenReturn(testUser);
+      when(userRepository.findByPhoneNumber(newPhoneNumber)).thenReturn(Optional.of(otherUser));
+
+      assertThrows(AppException.class, () -> userService.updatePhone(request));
+
+      verify(userRepository, never()).save(any());
+    }
+  }
+
+  @Test
+  void validateUserCriteria_WithValidUsername_ReturnsValid() {
+    ValidateUserCriteriaRequest request = new ValidateUserCriteriaRequest();
+    request.setCriteriaType(ValidateCriteria.USERNAME);
+    request.setCriteriaValue("validuser123");
+
+    when(userRepository.existsByUsername("validuser123")).thenReturn(false);
+
+    ApiResponseDTO<ValidateUserCriteriaResponse> response =
+        userService.validateUserCriteria(request);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+    assertTrue(response.getData().isValid());
+    assertTrue(response.getData().getValidationMessage().contains("valid and available"));
+  }
+
+  @Test
+  void validateUserCriteria_WithTakenUsername_ReturnsInvalid() {
+    ValidateUserCriteriaRequest request = new ValidateUserCriteriaRequest();
+    request.setCriteriaType(ValidateCriteria.USERNAME);
+    request.setCriteriaValue("takenuser");
+
+    when(userRepository.existsByUsername("takenuser")).thenReturn(true);
+
+    ApiResponseDTO<ValidateUserCriteriaResponse> response =
+        userService.validateUserCriteria(request);
+
+    assertNotNull(response);
+    assertFalse(response.getData().isValid());
+    assertTrue(response.getData().getValidationMessage().contains("already taken"));
+  }
+
+  @Test
+  void validateUserCriteria_WithShortUsername_ReturnsInvalid() {
+    ValidateUserCriteriaRequest request = new ValidateUserCriteriaRequest();
+    request.setCriteriaType(ValidateCriteria.USERNAME);
+    request.setCriteriaValue("abc");
+
+    ApiResponseDTO<ValidateUserCriteriaResponse> response =
+        userService.validateUserCriteria(request);
+
+    assertNotNull(response);
+    assertFalse(response.getData().isValid());
+    assertTrue(response.getData().getValidationMessage().contains("between 6 and 20"));
+  }
+
+  @Test
+  void validateUserCriteria_WithInvalidUsernamePattern_ReturnsInvalid() {
+    ValidateUserCriteriaRequest request = new ValidateUserCriteriaRequest();
+    request.setCriteriaType(ValidateCriteria.USERNAME);
+    request.setCriteriaValue("invalid-user!");
+
+    ApiResponseDTO<ValidateUserCriteriaResponse> response =
+        userService.validateUserCriteria(request);
+
+    assertNotNull(response);
+    assertFalse(response.getData().isValid());
+    assertTrue(
+        response
+            .getData()
+            .getValidationMessage()
+            .contains("can only contain letters, numbers, dots"));
+  }
+
+  @Test
+  void validateUserCriteria_WithValidPhone_ReturnsValid() {
+    ValidateUserCriteriaRequest request = new ValidateUserCriteriaRequest();
+    request.setCriteriaType(ValidateCriteria.PHONE);
+    request.setCriteriaValue("+84987654321");
+
+    when(userRepository.existsByPhoneNumber("+84987654321")).thenReturn(false);
+
+    ApiResponseDTO<ValidateUserCriteriaResponse> response =
+        userService.validateUserCriteria(request);
+
+    assertNotNull(response);
+    assertTrue(response.getData().isValid());
+    assertTrue(response.getData().getValidationMessage().contains("available"));
+  }
+
+  @Test
+  void validateUserCriteria_WithTakenPhone_ReturnsInvalid() {
+    ValidateUserCriteriaRequest request = new ValidateUserCriteriaRequest();
+    request.setCriteriaType(ValidateCriteria.PHONE);
+    request.setCriteriaValue("+84987654321");
+
+    when(userRepository.existsByPhoneNumber("+84987654321")).thenReturn(true);
+
+    ApiResponseDTO<ValidateUserCriteriaResponse> response =
+        userService.validateUserCriteria(request);
+
+    assertNotNull(response);
+    assertFalse(response.getData().isValid());
+    assertTrue(response.getData().getValidationMessage().contains("already registered"));
   }
 }

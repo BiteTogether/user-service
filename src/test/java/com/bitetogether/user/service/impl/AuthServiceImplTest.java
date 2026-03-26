@@ -30,6 +30,7 @@ import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.JwtService;
 import com.bitetogether.user.util.AuthUtils;
+import com.bitetogether.user.util.UserEventPublisherHelper;
 import com.google.firebase.auth.FirebaseToken;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -61,6 +62,8 @@ class AuthServiceImplTest {
   @Mock private JwtProperties jwtProperties;
 
   @Mock private FirebaseAuthService firebaseAuthService;
+
+  @Mock private UserEventPublisherHelper userEventPublisherHelper;
 
   @InjectMocks private AuthServiceImpl authService;
 
@@ -203,6 +206,7 @@ class AuthServiceImplTest {
     assertEquals(refreshTokenValue, response.getData().getRefreshToken());
     verify(firebaseAuthService).verifyIdToken(registerRequest.getIdToken());
     verify(userRepository).save(any(User.class));
+    verify(userEventPublisherHelper, times(1)).publishUserCreatedEvent(any(User.class));
   }
 
   @Test
