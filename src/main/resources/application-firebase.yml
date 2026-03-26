@@ -1,5 +1,4 @@
 firebase:
-  # Load credentials JSON from the classpath (src/main/resources/config/...)
-  credentials-path: ${FIREBASE_CREDENTIALS_PATH:config/bitetogether-aplus-firebase-adminsdk-fbsvc-910c2a8b94.json}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:config/firebase-service-account.json}
   storage-bucket: ${FIREBASE_STORAGE_BUCKET:bitetogether-aplus.appspot.com}
   base-url: ${FIREBASE_BASE_URL:https://firebasestorage.googleapis.com/v0/b/bitetogether-aplus.appspot.com/o}

@@ -24,6 +24,7 @@ import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.AuthService;
 import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.JwtService;
+import com.bitetogether.user.util.UserEventPublisherHelper;
 import com.google.firebase.auth.FirebaseToken;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
   JwtService jwtService;
   JwtProperties jwtProperties;
   FirebaseAuthService firebaseAuthService;
+  UserEventPublisherHelper userEventPublisherHelper;
 
   private static final String PHONE_NUMBER_CLAIM = "phone_number";
 
@@ -97,6 +99,9 @@ public class AuthServiceImpl implements AuthService {
 
     // Create new user
     User newUser = createUserFromRegisterRequest(firebaseUid, phoneNumber, registerRequest);
+
+    // Publish user created event to Kafka
+    userEventPublisherHelper.publishUserCreatedEvent(newUser);
 
     // Generate JWT tokens
     String refreshTokenJti = java.util.UUID.randomUUID().toString();

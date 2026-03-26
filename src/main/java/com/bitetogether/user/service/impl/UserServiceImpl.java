@@ -10,8 +10,6 @@ import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
-import com.bitetogether.user.dto.event.UserCreatedEvent;
-import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
@@ -34,9 +32,9 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
-import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.UserService;
+import com.bitetogether.user.util.UserEventPublisherHelper;
 import com.bitetogether.user.util.UserHelper;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.transaction.Transactional;
@@ -63,7 +61,7 @@ public class UserServiceImpl implements UserService {
   FriendRequestServiceImpl friendRequestService;
   FriendRequestRepository friendRequestRepository;
   RefreshTokenRepository refreshTokenRepository;
-  EventPublisherService eventPublisherService;
+  UserEventPublisherHelper userEventPublisherHelper;
   FirebaseStorageServiceImpl firebaseStorageService;
   FirebaseAuthService firebaseAuthService;
 
@@ -85,7 +83,7 @@ public class UserServiceImpl implements UserService {
     User databaseUser = userHelper.saveUser(newUser);
 
     // Publish user created event to Kafka
-    publishUserCreatedEvent(databaseUser);
+    userEventPublisherHelper.publishUserCreatedEvent(databaseUser);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "User created successfully", databaseUser.getId());
@@ -125,7 +123,7 @@ public class UserServiceImpl implements UserService {
     UserResponse userResponse = userMapper.toUserResponse(updatedUser);
 
     // Publish user updated event to Kafka
-    publishUserUpdatedEvent(updatedUser, updatedUser.getVersion());
+    userEventPublisherHelper.publishUserUpdatedEvent(updatedUser, updatedUser.getVersion());
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, "User updated successfully", userResponse);
   }
@@ -581,37 +579,5 @@ public class UserServiceImpl implements UserService {
                 throw new AppException(ErrorCode.PHONE_EXISTED);
               }
             });
-  }
-
-  // ==================== KAFKA EVENT PUBLISHERS ====================
-
-  private void publishUserCreatedEvent(User user) {
-    UserCreatedEvent event =
-        UserCreatedEvent.builder()
-            .userId(user.getId())
-            .username(user.getUsername())
-            .fullName(user.getFullName())
-            .phoneNumber(user.getPhoneNumber())
-            .avatar(user.getAvatar())
-            .eventTimestamp(LocalDateTime.now())
-            .version(0L) // Initial version
-            .build();
-
-    eventPublisherService.publishUserCreatedEvent(event);
-  }
-
-  private void publishUserUpdatedEvent(User user, Long version) {
-    UserUpdatedEvent event =
-        UserUpdatedEvent.builder()
-            .userId(user.getId())
-            .username(user.getUsername())
-            .fullName(user.getFullName())
-            .phoneNumber(user.getPhoneNumber())
-            .avatar(user.getAvatar())
-            .eventTimestamp(LocalDateTime.now())
-            .version(version)
-            .build();
-
-    eventPublisherService.publishUserUpdatedEvent(event);
   }
 }
