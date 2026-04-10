@@ -48,3 +48,6 @@ firebase-adminsdk-*.json
 
 github_token.txt
 github_username.txt
+
+client.keystore.p12
+client.truststore.jks

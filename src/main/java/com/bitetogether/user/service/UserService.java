@@ -5,7 +5,7 @@ import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
-import com.bitetogether.user.dto.user.request.UserOnlineStatus;
+import com.bitetogether.user.dto.user.request.UpdateUserState;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
@@ -37,7 +37,7 @@ public interface UserService {
   ApiResponseDTO<Void> updateNotificationSettings(
       Long id, UserNotificationSettingsRequest userNotificationSettingsRequest);
 
-  ApiResponseDTO<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus);
+  ApiResponseDTO<Void> updateUserState(Long id, UpdateUserState updateUserState);
 
   ApiResponseDTO<ListUserDetailsResponse> getListUser(List<Long> request);
 

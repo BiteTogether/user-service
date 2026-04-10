@@ -9,7 +9,7 @@ import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
-import com.bitetogether.user.dto.user.request.UserOnlineStatus;
+import com.bitetogether.user.dto.user.request.UpdateUserState;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
@@ -142,13 +142,13 @@ public class UserController {
   }
 
   @Operation(
-      summary = "Update user online status",
+      summary = "Update user state",
       description =
-          "Updates the online/offline status of a user for real-time presence tracking in the application")
-  @PutMapping("/{id}/online")
-  public ResponseEntity<ApiResponseDTO<Void>> setUserOnlineStatus(
-      @PathVariable @ValidLongId Long id, @RequestBody @Valid UserOnlineStatus userOnlineStatus) {
-    return buildEntityResponse(userService.setUserOnline(id, userOnlineStatus));
+          "Updates a user's foreground/background/offline state for real-time presence tracking")
+  @PutMapping("/{id}/state")
+  public ResponseEntity<ApiResponseDTO<Void>> updateUserState(
+      @PathVariable @ValidLongId Long id, @RequestBody @Valid UpdateUserState updateUserState) {
+    return buildEntityResponse(userService.updateUserState(id, updateUserState));
   }
 
   @Operation(

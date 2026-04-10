@@ -16,7 +16,7 @@ import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
-import com.bitetogether.user.dto.user.request.UserOnlineStatus;
+import com.bitetogether.user.dto.user.request.UpdateUserState;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
@@ -29,6 +29,7 @@ import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
 import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
+import com.bitetogether.user.enums.UserState;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
@@ -40,6 +41,7 @@ import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +51,7 @@ import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -66,12 +69,15 @@ public class UserServiceImpl implements UserService {
   EventPublisherService eventPublisherService;
   FirebaseStorageServiceImpl firebaseStorageService;
   FirebaseAuthService firebaseAuthService;
+  StringRedisTemplate stringRedisTemplate;
 
   // Validation constants
   private static final int USERNAME_MIN_LENGTH = 6;
   private static final int USERNAME_MAX_LENGTH = 20;
   private static final String USERNAME_PATTERN = "^[a-zA-Z0-9._]{6,20}$";
   private static final String PHONE_NUMBER_CLAIM = "phone_number";
+  private static final Duration USER_STATE_CACHE_TTL = Duration.ofHours(1);
+  private static final String USER_STATE_CACHE_KEY_PREFIX = "user:state:";
 
   @Override
   @Transactional
@@ -241,8 +247,12 @@ public class UserServiceImpl implements UserService {
 
   private void setFriendStatusFields(UserGetByIdItem response, User user) {
     response.setIsFriend(true);
-    response.setIsUserOnline(user.isOnline());
+    response.setIsUserOnline(isUserOnline(user));
     response.setLastSeenUser(user.getLastSeen());
+  }
+
+  private boolean isUserOnline(User user) {
+    return user.getState() != UserState.OFFLINE;
   }
 
   private void setSentFriendRequestFields(UserGetByIdItem response, User currentUser, User user) {
@@ -314,17 +324,25 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public ApiResponseDTO<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus) {
+  public ApiResponseDTO<Void> updateUserState(Long id, UpdateUserState updateUserState) {
     validateUserAuthorization(id);
 
     User user = userHelper.findUserById(id);
 
-    user.setOnline(userOnlineStatus.isOnline());
+    user.setState(updateUserState.getState());
     user.setLastSeen(LocalDateTime.now());
 
     userHelper.saveUser(user);
 
+    cacheUserState(id, updateUserState.getState());
+
     return buildApiResponse(ApiResponseStatus.SUCCESS, "User has been updated successfully", null);
+  }
+
+  private void cacheUserState(Long userId, UserState state) {
+    stringRedisTemplate
+        .opsForValue()
+        .set(USER_STATE_CACHE_KEY_PREFIX + userId, state.name(), USER_STATE_CACHE_TTL);
   }
 
   private void validateUserAuthorization(Long id) {

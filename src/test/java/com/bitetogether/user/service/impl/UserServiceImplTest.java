@@ -21,7 +21,7 @@ import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
-import com.bitetogether.user.dto.user.request.UserOnlineStatus;
+import com.bitetogether.user.dto.user.request.UpdateUserState;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
@@ -79,7 +79,7 @@ class UserServiceImplTest {
   private UpdateUserRequest updateUserRequest;
   private UserSearchRequest userSearchRequest;
   private UserNotificationSettingsRequest notificationSettingsRequest;
-  private UserOnlineStatus userOnlineStatus;
+  private UpdateUserState updateUserState;
 
   @BeforeEach
   void setUp() {
@@ -128,8 +128,8 @@ class UserServiceImplTest {
     notificationSettingsRequest.setPushNotificationsEnabled(true);
     notificationSettingsRequest.setInAppNotificationsEnabled(true);
 
-    userOnlineStatus = new UserOnlineStatus();
-    userOnlineStatus.setOnline(true);
+    updateUserState = new UpdateUserState();
+    updateUserState.setOnline(true);
   }
 
   @Test
@@ -514,7 +514,7 @@ class UserServiceImplTest {
       when(userHelper.findUserById(userId)).thenReturn(testUser);
       when(userHelper.saveUser(testUser)).thenReturn(testUser);
 
-      ApiResponseDTO<Void> response = userService.setUserOnline(userId, userOnlineStatus);
+      ApiResponseDTO<Void> response = userService.setUserOnline(userId, updateUserState);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
