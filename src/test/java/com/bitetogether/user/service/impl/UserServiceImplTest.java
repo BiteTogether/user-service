@@ -18,6 +18,7 @@ import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.enums.Role;
 import com.bitetogether.common.exception.AppException;
 import com.bitetogether.user.convert.UserMapper;
+import com.bitetogether.user.dto.event.UserDeletedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
@@ -274,6 +275,7 @@ class UserServiceImplTest {
       verify(friendRequestRepository, times(1)).deleteAllByUserId(userId);
       verify(refreshTokenRepository, times(1)).deleteAllByUserId(userId);
       verify(userRepository, times(1)).delete(testUser);
+      verify(eventPublisherService, times(1)).publishUserDeletedEvent(any(UserDeletedEvent.class));
     }
   }
 
@@ -296,6 +298,7 @@ class UserServiceImplTest {
 
       verify(userRepository, times(1)).save(friendUser);
       verify(userRepository, times(1)).delete(testUser);
+      verify(eventPublisherService, times(1)).publishUserDeletedEvent(any(UserDeletedEvent.class));
       assertTrue(testUser.getFriends().isEmpty());
     }
   }

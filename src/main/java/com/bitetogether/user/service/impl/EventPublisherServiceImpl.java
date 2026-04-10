@@ -3,6 +3,7 @@ package com.bitetogether.user.service.impl;
 import com.bitetogether.user.configuration.kafka.KafkaProperties;
 import com.bitetogether.user.dto.event.CreateConversationEvent;
 import com.bitetogether.user.dto.event.UserCreatedEvent;
+import com.bitetogether.user.dto.event.UserDeletedEvent;
 import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.service.EventPublisherService;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,21 @@ public class EventPublisherServiceImpl implements EventPublisherService {
                 logSuccess("UserUpdatedEvent", result);
               } else {
                 logError("UserUpdatedEvent", topic, ex);
+              }
+            });
+  }
+
+  @Override
+  public void publishUserDeletedEvent(UserDeletedEvent event) {
+    String topic = kafkaProperties.getTopic().getUserEvents();
+    kafkaTemplate
+        .send(topic, event.getUserId().toString(), event)
+        .whenComplete(
+            (result, ex) -> {
+              if (ex == null) {
+                logSuccess("UserDeletedEvent", result);
+              } else {
+                logError("UserDeletedEvent", topic, ex);
               }
             });
   }
