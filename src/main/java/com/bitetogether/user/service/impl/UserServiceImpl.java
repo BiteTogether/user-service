@@ -11,6 +11,7 @@ import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.event.UserCreatedEvent;
+import com.bitetogether.user.dto.event.UserDeletedEvent;
 import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
@@ -170,6 +171,9 @@ public class UserServiceImpl implements UserService {
     removeUserProperties(id);
 
     userRepository.delete(existingUser);
+
+    // Publish user deleted event to Kafka
+    publishUserDeletedEvent(existingUser, existingUser.getVersion());
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "User with id " + id + " has been deleted successfully", null);
