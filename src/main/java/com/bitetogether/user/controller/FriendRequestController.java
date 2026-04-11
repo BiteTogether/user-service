@@ -10,6 +10,7 @@ import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.validation.ValidLongId;
 import com.bitetogether.common.validation.ValidPage;
 import com.bitetogether.common.validation.ValidSize;
+import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.service.FriendRequestService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,7 +51,7 @@ public class FriendRequestController {
       description =
           "Accepts a pending friend request. This creates a friendship connection between the two users")
   @PostMapping("/{id}/accept")
-  public ResponseEntity<ApiResponseDTO<Void>> acceptFriendRequest(
+  public ResponseEntity<ApiResponseDTO<FriendResponse>> acceptFriendRequest(
       @PathVariable @ValidLongId Long id) {
     return buildEntityResponse(friendRequestService.acceptFriendRequest(id));
   }

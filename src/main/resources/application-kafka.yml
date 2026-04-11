@@ -7,11 +7,11 @@ spring:
       ssl:
         keystore:
           type: PKCS12
-          location: classpath:client.keystore.p12
+          location: ${KAFKA_SSL_KEYSTORE_LOCATION:classpath:client.keystore.p12}
           password: ${KAFKA_SSL_KEYSTORE_PASSWORD}
         truststore:
           type: JKS
-          location: classpath:client.truststore.jks
+          location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:classpath:client.truststore.jks}
           password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
         endpoint-identification-algorithm: ""
       

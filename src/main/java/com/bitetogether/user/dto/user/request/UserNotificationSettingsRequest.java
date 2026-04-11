@@ -8,8 +8,5 @@ import lombok.Setter;
 @Setter
 public class UserNotificationSettingsRequest {
   @NotNull(message = "Push notifications setting must not be null")
-  private boolean pushNotificationsEnabled;
-
-  @NotNull(message = "In-app notifications setting must not be null")
-  private boolean inAppNotificationsEnabled;
+  private Boolean pushNotificationsEnabled;
 }

@@ -196,6 +196,13 @@ class FriendRequestServiceImplTest {
   void acceptFriendRequest_WithValidRequest_EstablishesFriendship() {
     Long requestId = 1L;
     Long receiverId = 2L;
+    FriendResponse friendResponse =
+        FriendResponse.builder()
+            .id(1L)
+            .username("sender")
+            .fullName("Sender User")
+            .avatar("avatar.jpg")
+            .build();
 
     try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
       authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(receiverId);
@@ -203,17 +210,22 @@ class FriendRequestServiceImplTest {
       when(friendRequestRepository.findById(requestId)).thenReturn(Optional.of(friendRequest));
       when(userHelper.saveUser(sender)).thenReturn(sender);
       when(userHelper.saveUser(receiver)).thenReturn(receiver);
+      when(userMapper.toFriendResponse(sender)).thenReturn(friendResponse);
 
-      ApiResponseDTO<Void> response = friendRequestService.acceptFriendRequest(requestId);
+      ApiResponseDTO<FriendResponse> response = friendRequestService.acceptFriendRequest(requestId);
 
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertEquals("Friend request accepted successfully", response.getMessage());
+      assertNotNull(response.getData());
+      assertEquals(1L, response.getData().getId());
+      assertEquals("sender", response.getData().getUsername());
 
       verify(userHelper, times(1)).saveUser(sender);
       verify(userHelper, times(1)).saveUser(receiver);
       verify(friendRequestRepository, times(1)).deleteById(requestId);
       verify(eventPublisherService, times(1)).publishCreateConversationEvent(any());
+      verify(userMapper, times(1)).toFriendResponse(sender);
     }
   }
 

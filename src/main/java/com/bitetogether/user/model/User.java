@@ -1,7 +1,7 @@
 package com.bitetogether.user.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.bitetogether.user.enums.UserState;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -79,8 +79,6 @@ public class User extends BaseEntity {
   Set<User> friends = new HashSet<>();
 
   @Column boolean pushNotificationsEnabled = false;
-
-  @Column boolean inAppNotificationsEnabled = false;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "state", nullable = false)
