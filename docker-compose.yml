@@ -8,26 +8,40 @@ services:
     ports:
       - "${SERVER_PORT:-8081}:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-database,security,jwt,openapi}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-database,security,jwt,openapi,firebase,kafka}
       SERVER_PORT: ${SERVER_PORT:-8081}
 
+      # Database Configuration
       DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/mydatabase}
-      DB_USERNAME: ${DB_USERNAME:-myuser}
-      DB_PASSWORD: ${DB_PASSWORD:-mypassword}
-      DB_DRIVER: ${DB_DRIVER:-org.postgresql.Driver}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      HIBERNATE_DIALECT: ${HIBERNATE_DIALECT:-org.hibernate.dialect.PostgreSQLDialect}
 
+      # JWT Configuration
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-here-make-it-at-least-256-bits-long-for-security}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-900}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-86400}
 
+      # Security & CORS Configuration
       SECURITY_PERMIT_PATHS: ${SECURITY_PERMIT_PATHS:-/actuator/**,/swagger-ui/**,/v3/api-docs/**,/api/v1/auth/**}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
       CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
       CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-*}
       CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
 
+      # Firebase Configuration
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-/app/config/firebase-service-account.json}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-bitetogether-aplus.appspot.com}
+      FIREBASE_BASE_URL: ${FIREBASE_BASE_URL:-https://firebasestorage.googleapis.com/v0/b/bitetogether-aplus.appspot.com/o}
+
+      # Kafka Configuration
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      KAFKA_SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL:-SSL}
+      KAFKA_SSL_KEYSTORE_LOCATION: ${KAFKA_SSL_KEYSTORE_LOCATION:-file:/app/certs/client.keystore.p12}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_KEYSTORE_PASSWORD}
+      KAFKA_SSL_TRUSTSTORE_LOCATION: ${KAFKA_SSL_TRUSTSTORE_LOCATION:-file:/app/certs/client.truststore.jks}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+      USER_EVENTS_TOPIC: ${USER_EVENTS_TOPIC:-user-events}
+      CONVERSATION_EVENTS_TOPIC: ${CONVERSATION_EVENTS_TOPIC:-conversation-events}
+
+      # OpenAPI Configuration
       API_TITLE: ${API_TITLE:-BiteTogether User Service API}
       API_DESCRIPTION: ${API_DESCRIPTION:-API documentation for BiteTogether User Service}
       API_VERSION: ${API_VERSION:-v1}
@@ -42,6 +56,7 @@ services:
       SONAR_PROJECT_VERSION: ${SONAR_PROJECT_VERSION:-1.0.0}
       SONAR_HOST_URL: ${SONAR_HOST_URL:-http://localhost:9000}
       SONAR_TOKEN: ${SONAR_TOKEN:-your-sonar-token-here}
+
 
     depends_on:
       postgres:

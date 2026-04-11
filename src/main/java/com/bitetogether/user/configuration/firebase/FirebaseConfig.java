@@ -5,7 +5,11 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -19,28 +23,43 @@ public class FirebaseConfig {
 
   private final FirebaseProperties firebaseProperties;
 
+  private InputStream getCredentialsInputStream() throws IOException {
+    String credentialsPath = firebaseProperties.getCredentialsPath();
+
+    // Try file system first (for Docker)
+    if (Files.exists(Paths.get(credentialsPath))) {
+      log.info("Loading Firebase credentials from file system: {}", credentialsPath);
+      return new FileInputStream(credentialsPath);
+    }
+
+    // Fallback to classpath (for local development)
+    log.info("Loading Firebase credentials from classpath: {}", credentialsPath);
+    return new ClassPathResource(credentialsPath).getInputStream();
+  }
+
   @Bean
   public FirebaseApp initializeFirebase() throws IOException {
     if (FirebaseApp.getApps().isEmpty()) {
-      ClassPathResource resource = new ClassPathResource(firebaseProperties.getCredentialsPath());
+      try (InputStream inputStream = getCredentialsInputStream()) {
+        FirebaseOptions options =
+            FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.fromStream(inputStream))
+                .setStorageBucket(firebaseProperties.getStorageBucket())
+                .build();
 
-      FirebaseOptions options =
-          FirebaseOptions.builder()
-              .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
-              .setStorageBucket(firebaseProperties.getStorageBucket())
-              .build();
-
-      FirebaseApp app = FirebaseApp.initializeApp(options);
-      log.info("Firebase application has been initialized successfully");
-      return app;
+        FirebaseApp app = FirebaseApp.initializeApp(options);
+        log.info("Firebase application has been initialized successfully");
+        return app;
+      }
     }
     return FirebaseApp.getInstance();
   }
 
   @Bean
   public Storage storage() throws IOException {
-    ClassPathResource resource = new ClassPathResource(firebaseProperties.getCredentialsPath());
-    GoogleCredentials credentials = GoogleCredentials.fromStream(resource.getInputStream());
-    return StorageOptions.newBuilder().setCredentials(credentials).build().getService();
+    try (InputStream inputStream = getCredentialsInputStream()) {
+      GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
+      return StorageOptions.newBuilder().setCredentials(credentials).build().getService();
+    }
   }
 }

@@ -8,8 +8,8 @@ import com.bitetogether.common.validation.ValidLongId;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdateUserState;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
-import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
@@ -19,6 +19,7 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.UserStateResponse;
 import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -142,16 +144,6 @@ public class UserController {
   }
 
   @Operation(
-      summary = "Update user online status",
-      description =
-          "Updates the online/offline status of a user for real-time presence tracking in the application")
-  @PutMapping("/{id}/online")
-  public ResponseEntity<ApiResponseDTO<Void>> setUserOnlineStatus(
-      @PathVariable @ValidLongId Long id, @RequestBody @Valid UserOnlineStatus userOnlineStatus) {
-    return buildEntityResponse(userService.setUserOnline(id, userOnlineStatus));
-  }
-
-  @Operation(
       summary = "Upload user avatar",
       description =
           "Uploads a new avatar image for the specified user. The image will be stored in Firebase Storage and the URL will be saved to the user profile. Supports JPEG, PNG, GIF, and WebP formats with a maximum size of 5MB")
@@ -192,5 +184,25 @@ public class UserController {
   public ResponseEntity<ApiResponseDTO<ValidateUserCriteriaResponse>> validateUserCriteria(
       @RequestBody @Valid ValidateUserCriteriaRequest criteria) {
     return buildEntityResponse(userService.validateUserCriteria(criteria));
+  }
+
+  @Operation(
+      summary = "Update user state",
+      description =
+          "Updates a user's foreground/background/offline state for real-time presence tracking")
+  @PatchMapping("/{id}/state")
+  public ResponseEntity<ApiResponseDTO<Void>> updateUserState(
+      @PathVariable @ValidLongId Long id, @RequestBody @Valid UpdateUserState updateUserState) {
+    return buildEntityResponse(userService.updateUserState(id, updateUserState));
+  }
+
+  @Operation(
+      summary = "Get current user state",
+      description =
+          "Retrieves the current online status and last seen time of the authenticated user. "
+              + "Returns the state from cache if available, otherwise fetches from database")
+  @GetMapping("/state")
+  public ResponseEntity<ApiResponseDTO<UserStateResponse>> getCurrentUserState() {
+    return buildEntityResponse(userService.getCurrentUserState());
   }
 }

@@ -10,6 +10,7 @@ import com.bitetogether.common.exception.AppException;
 import com.bitetogether.common.exception.GlobalErrorCode;
 import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.event.CreateConversationEvent;
+import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.dto.friendrequest.response.FriendRequestResponse;
 import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.exception.ErrorCode;
@@ -84,8 +85,10 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
   @Override
   @Transactional
-  public ApiResponseDTO<Void> acceptFriendRequest(Long id) {
+  public ApiResponseDTO<FriendResponse> acceptFriendRequest(Long id) {
     FriendRequest friendRequest = validateAcceptFriendRequest(id);
+
+    User sender = friendRequest.getSender();
 
     establishFriendship(friendRequest);
 
@@ -95,8 +98,10 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
     deleteFriendRequestHelper(friendRequest.getId());
 
+    FriendResponse senderResponse = userMapper.toFriendResponse(sender);
+
     return buildApiResponse(
-        ApiResponseStatus.SUCCESS, "Friend request accepted successfully", null);
+        ApiResponseStatus.SUCCESS, "Friend request accepted successfully", senderResponse);
   }
 
   private FriendRequest validateAcceptFriendRequest(Long requestId) {

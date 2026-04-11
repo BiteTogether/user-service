@@ -16,8 +16,8 @@ import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
+import com.bitetogether.user.dto.user.request.UpdateUserState;
 import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
-import com.bitetogether.user.dto.user.request.UserOnlineStatus;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
@@ -28,8 +28,10 @@ import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
 import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
+import com.bitetogether.user.dto.user.response.UserStateResponse;
 import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
+import com.bitetogether.user.enums.UserState;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
@@ -37,6 +39,7 @@ import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FirebaseAuthService;
+import com.bitetogether.user.service.UserCacheService;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
 import com.google.firebase.auth.FirebaseToken;
@@ -67,6 +70,7 @@ public class UserServiceImpl implements UserService {
   EventPublisherService eventPublisherService;
   FirebaseStorageServiceImpl firebaseStorageService;
   FirebaseAuthService firebaseAuthService;
+  UserCacheService userCacheService;
 
   // Validation constants
   private static final int USERNAME_MIN_LENGTH = 6;
@@ -245,8 +249,12 @@ public class UserServiceImpl implements UserService {
 
   private void setFriendStatusFields(UserGetByIdItem response, User user) {
     response.setIsFriend(true);
-    response.setIsUserOnline(user.isOnline());
+    response.setIsUserOnline(isUserOnline(user));
     response.setLastSeenUser(user.getLastSeen());
+  }
+
+  private boolean isUserOnline(User user) {
+    return user.getState() != UserState.OFFLINE;
   }
 
   private void setSentFriendRequestFields(UserGetByIdItem response, User currentUser, User user) {
@@ -273,14 +281,62 @@ public class UserServiceImpl implements UserService {
 
     User searchedUser = searchUser(keyword);
 
+    // If the searched user is the current user, return empty result
+    if (searchedUser != null) {
+      Long currentUserId = getCurrentUserId();
+      if (currentUserId != null && currentUserId.equals(searchedUser.getId())) {
+        return buildApiResponse(
+            ApiResponseStatus.SUCCESS, "No users found matching the keyword", null);
+      }
+    }
+
     UserSearchResponse userSearchResponse =
         searchedUser == null ? null : userMapper.toUserSearchResponse(searchedUser);
+
+    // Enrich with friend status if user found
+    if (userSearchResponse != null) {
+      enrichSearchResultWithFriendStatus(userSearchResponse, searchedUser);
+    }
+
     String message =
         searchedUser == null
             ? "No users found matching the keyword"
-            : "Users have been fetched successfully";
+            : "Users have been searched successfully";
 
     return buildApiResponse(ApiResponseStatus.SUCCESS, message, userSearchResponse);
+  }
+
+  private void enrichSearchResultWithFriendStatus(UserSearchResponse response, User searchedUser) {
+    Long currentUserId = getCurrentUserId();
+    User currentUser = userHelper.findUserById(currentUserId);
+
+    // Check if they are already friends
+    if (currentUser.getFriends().contains(searchedUser)) {
+      response.setIsFriend(true);
+      return;
+    }
+
+    // Check friend request status
+    FriendRequestType friendRequestType =
+        friendRequestService.getFriendRequestTypeBetweenUsers(currentUser, searchedUser);
+
+    switch (friendRequestType) {
+      case SENT -> {
+        response.setHasFriendRequestSent(true);
+        response.setFriendRequestId(
+            friendRequestService.getFriendRequestSentId(currentUser, searchedUser));
+      }
+      case RECEIVED -> {
+        response.setHasFriendRequestReceived(true);
+        response.setFriendRequestId(
+            friendRequestService.getFriendRequestReceivedId(currentUser, searchedUser));
+      }
+      default -> {
+        response.setIsFriend(false);
+        response.setHasFriendRequestSent(false);
+        response.setHasFriendRequestReceived(false);
+      }
+    }
   }
 
   private User searchUser(String keyword) {
@@ -309,26 +365,15 @@ public class UserServiceImpl implements UserService {
 
     User user = userHelper.findUserById(id);
 
-    userMapper.updateUserNotificationSettingsFromRequest(userNotificationSettingsRequest, user);
+    user.setPushNotificationsEnabled(userNotificationSettingsRequest.getPushNotificationsEnabled());
 
     userHelper.saveUser(user);
+
+    // Evict cache to ensure next read gets updated value
+    userCacheService.evictUserState(id);
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "User notification settings updated successfully", null);
-  }
-
-  @Override
-  public ApiResponseDTO<Void> setUserOnline(Long id, UserOnlineStatus userOnlineStatus) {
-    validateUserAuthorization(id);
-
-    User user = userHelper.findUserById(id);
-
-    user.setOnline(userOnlineStatus.isOnline());
-    user.setLastSeen(LocalDateTime.now());
-
-    userHelper.saveUser(user);
-
-    return buildApiResponse(ApiResponseStatus.SUCCESS, "User has been updated successfully", null);
   }
 
   private void validateUserAuthorization(Long id) {
@@ -619,14 +664,57 @@ public class UserServiceImpl implements UserService {
     eventPublisherService.publishUserUpdatedEvent(event);
   }
 
-  private void publishUserDeletedEvent(User user, Long version) {
-    UserDeletedEvent event =
-        UserDeletedEvent.builder()
-            .userId(user.getId())
-            .eventTimestamp(LocalDateTime.now())
-            .version(version)
+  @Override
+  public ApiResponseDTO<Void> updateUserState(Long id, UpdateUserState updateUserState) {
+    validateUserAuthorization(id);
+
+    User user = userHelper.findUserById(id);
+    UserState newState = updateUserState.getState();
+
+    user.setState(newState);
+
+    // Only update lastSeen when user goes OFFLINE or BACKGROUND
+    if (newState == UserState.OFFLINE || newState == UserState.BACKGROUND) {
+      user.setLastSeen(LocalDateTime.now());
+    }
+
+    userHelper.saveUser(user);
+
+    userCacheService.cacheUserState(
+        id, user.getState(), user.getLastSeen(), user.isPushNotificationsEnabled());
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "User has been updated successfully", null);
+  }
+
+  @Override
+  public ApiResponseDTO<UserStateResponse> getCurrentUserState() {
+    Long currentUserId = getCurrentUserId();
+
+    // Try to get from cache first
+    UserStateResponse cachedState = userCacheService.getCachedUserState(currentUserId).orElse(null);
+
+    if (cachedState != null) {
+      log.debug("Retrieved user state from cache for user ID: {}", currentUserId);
+      return buildApiResponse(
+          ApiResponseStatus.SUCCESS, "User state fetched successfully", cachedState);
+    }
+
+    // Cache miss - fallback to database
+    log.debug(
+        "User state not found in cache, fetching from database for user ID: {}", currentUserId);
+    User user = userHelper.findUserById(currentUserId);
+
+    UserStateResponse response =
+        UserStateResponse.builder()
+            .state(user.getState())
+            .lastSeen(user.getLastSeen())
+            .pushNotificationsEnabled(user.isPushNotificationsEnabled())
             .build();
 
-    eventPublisherService.publishUserDeletedEvent(event);
+    // Cache the result for next time
+    userCacheService.cacheUserState(
+        currentUserId, user.getState(), user.getLastSeen(), user.isPushNotificationsEnabled());
+
+    return buildApiResponse(ApiResponseStatus.SUCCESS, "User state fetched successfully", response);
   }
 }

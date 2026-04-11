@@ -9,6 +9,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -17,6 +18,7 @@ import org.springframework.kafka.core.ProducerFactory;
 
 @Slf4j
 @Configuration
+@Profile("kafka")
 @RequiredArgsConstructor
 public class KafkaProducerConfig {
   private final KafkaProperties kafkaProperties;

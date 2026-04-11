@@ -1,8 +1,11 @@
 package com.bitetogether.user.model;
 
+import com.bitetogether.user.enums.UserState;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -77,9 +80,10 @@ public class User extends BaseEntity {
 
   @Column boolean pushNotificationsEnabled = false;
 
-  @Column boolean inAppNotificationsEnabled = false;
-
-  @Column boolean isOnline = false;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "state", nullable = false)
+  @Builder.Default
+  UserState state = UserState.OFFLINE;
 
   @Column LocalDateTime lastSeen = LocalDateTime.now();
 }

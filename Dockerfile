@@ -18,8 +18,6 @@ RUN mvn -B org.apache.maven.plugins:maven-install-plugin:3.1.0:install-file \
     -Dversion=${COMMON_VERSION} \
     -Dpackaging=jar
 
-# ⚠️ Không dùng settings.xml & không gọi GitHub registry nữa
-# => Tối ưu cache dependency (sẽ dùng local maven repo)
 RUN mvn dependency:go-offline -B
 
 # Build ứng dụng
@@ -31,11 +29,25 @@ FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
 
+# Copy JAR file
 COPY --from=builder /app/target/*.jar app.jar
 
-RUN chown -R spring:spring /app
+# Copy SSL certificates for Kafka
+COPY --from=builder /app/src/main/resources/client.keystore.p12 /app/certs/client.keystore.p12
+COPY --from=builder /app/src/main/resources/client.truststore.jks /app/certs/client.truststore.jks
+
+# Copy Firebase credentials
+COPY --from=builder /app/src/main/resources/config/firebase-service-account.json /app/config/firebase-service-account.json
+
+# Create directories and set permissions
+RUN mkdir -p /app/config && \
+    chown -R spring:spring /app && \
+    chmod 600 /app/certs/client.keystore.p12 /app/certs/client.truststore.jks && \
+    chmod 600 /app/config/firebase-service-account.json
+
 USER spring
 
 EXPOSE 8081
 
+# Credentials are loaded from JAR's classpath by default
 ENTRYPOINT ["java", "-jar", "app.jar"]

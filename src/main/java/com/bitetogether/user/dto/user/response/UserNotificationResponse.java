@@ -9,7 +9,4 @@ import lombok.Setter;
 public class UserNotificationResponse {
   @JsonProperty("pushNotificationsEnabled")
   private boolean pushNotificationsEnabled;
-
-  @JsonProperty("inAppNotificationsEnabled")
-  private boolean inAppNotificationsEnabled;
 }
