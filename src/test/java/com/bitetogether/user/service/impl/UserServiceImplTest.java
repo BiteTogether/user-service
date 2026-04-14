@@ -42,6 +42,7 @@ import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FirebaseAuthService;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.service.UserCacheService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
@@ -84,6 +85,8 @@ class UserServiceImplTest {
   @Mock private FirebaseAuthService firebaseAuthService;
 
   @Mock private UserCacheService userCacheService;
+
+  @Mock private ConversationService conversationService;
 
   @InjectMocks private UserServiceImpl userService;
 
@@ -358,6 +361,7 @@ class UserServiceImplTest {
       when(userHelper.findUserById(targetUserId)).thenReturn(friendUser);
       when(userHelper.findUserById(currentUserId)).thenReturn(testUser);
       when(userMapper.toUserGetByIdResponse(friendUser)).thenReturn(userGetByIdResponse);
+      when(conversationService.getDirectConversationId(targetUserId)).thenReturn("conv-2");
 
       ApiResponseDTO<UserGetByIdResponse> response = userService.getUserById(targetUserId);
 
@@ -366,6 +370,7 @@ class UserServiceImplTest {
       assertNotNull(response.getData().getFriendItem());
       assertTrue(response.getData().getFriendItem().getIsFriend());
       assertTrue(response.getData().getFriendItem().getIsUserOnline()); // FOREGROUND state
+      assertEquals("conv-2", response.getData().getConversationId());
     }
   }
 

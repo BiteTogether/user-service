@@ -10,4 +10,5 @@ public class FriendResponse {
   private String username;
   private String fullName;
   private String avatar;
+  private String conversationId;
 }
