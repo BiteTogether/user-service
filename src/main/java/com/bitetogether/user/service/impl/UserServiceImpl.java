@@ -39,6 +39,7 @@ import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FirebaseAuthService;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.service.UserCacheService;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
@@ -71,6 +72,7 @@ public class UserServiceImpl implements UserService {
   FirebaseStorageServiceImpl firebaseStorageService;
   FirebaseAuthService firebaseAuthService;
   UserCacheService userCacheService;
+  ConversationService conversationService;
 
   // Validation constants
   private static final int USERNAME_MIN_LENGTH = 6;
@@ -215,6 +217,7 @@ public class UserServiceImpl implements UserService {
     User user = userHelper.findUserById(id);
 
     UserGetByIdResponse userGetByIdResponse = userMapper.toUserGetByIdResponse(user);
+    userGetByIdResponse.setConversationId(conversationService.getDirectConversationId(id));
 
     enrichWithFriendStatus(userGetByIdResponse, user);
 
@@ -662,6 +665,17 @@ public class UserServiceImpl implements UserService {
             .build();
 
     eventPublisherService.publishUserUpdatedEvent(event);
+  }
+
+  private void publishUserDeletedEvent(User user, Long version) {
+    UserDeletedEvent event =
+            UserDeletedEvent.builder()
+                    .userId(user.getId())
+                    .eventTimestamp(LocalDateTime.now())
+                    .version(version)
+                    .build();
+
+    eventPublisherService.publishUserDeletedEvent(event);
   }
 
   @Override

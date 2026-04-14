@@ -22,6 +22,7 @@ import com.bitetogether.user.enums.FriendRequestType;
 import com.bitetogether.user.model.FriendRequest;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
@@ -51,6 +52,8 @@ class FriendRequestServiceImplTest {
   @Mock private UserHelper userHelper;
 
   @Mock private EventPublisherService eventPublisherService;
+
+  @Mock private ConversationService conversationService;
 
   @InjectMocks private FriendRequestServiceImpl friendRequestService;
 
@@ -211,6 +214,7 @@ class FriendRequestServiceImplTest {
       when(userHelper.saveUser(sender)).thenReturn(sender);
       when(userHelper.saveUser(receiver)).thenReturn(receiver);
       when(userMapper.toFriendResponse(sender)).thenReturn(friendResponse);
+      when(conversationService.getDirectConversationId(sender.getId())).thenReturn("conv-1");
 
       ApiResponseDTO<FriendResponse> response = friendRequestService.acceptFriendRequest(requestId);
 
@@ -220,6 +224,7 @@ class FriendRequestServiceImplTest {
       assertNotNull(response.getData());
       assertEquals(1L, response.getData().getId());
       assertEquals("sender", response.getData().getUsername());
+      assertEquals("conv-1", response.getData().getConversationId());
 
       verify(userHelper, times(1)).saveUser(sender);
       verify(userHelper, times(1)).saveUser(receiver);

@@ -8,6 +8,7 @@ spring:
         - openapi
         - redis
         - security
+        - openfeign
   servlet:
     multipart:
       enabled: true

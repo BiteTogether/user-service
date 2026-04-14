@@ -19,6 +19,7 @@ import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FriendRequestService;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.util.UserHelper;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -41,6 +42,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
   UserMapper userMapper;
   UserHelper userHelper;
   EventPublisherService eventPublisherService;
+  ConversationService conversationService;
 
   @Override
   @Transactional
@@ -99,6 +101,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     deleteFriendRequestHelper(friendRequest.getId());
 
     FriendResponse senderResponse = userMapper.toFriendResponse(sender);
+    senderResponse.setConversationId(conversationService.getDirectConversationId(sender.getId()));
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS, "Friend request accepted successfully", senderResponse);

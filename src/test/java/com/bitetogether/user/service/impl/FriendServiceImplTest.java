@@ -18,10 +18,12 @@ import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.friend.response.FriendResponse;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +48,8 @@ class FriendServiceImplTest {
   @Mock private UserHelper userHelper;
 
   @Mock private UserRepository userRepository;
+
+  @Mock private ConversationService conversationService;
 
   @InjectMocks private FriendServiceImpl friendService;
 
@@ -74,6 +78,8 @@ class FriendServiceImplTest {
 
       when(userRepository.getFriendsByUserId(currentUserId, pageable)).thenReturn(friendPage);
       when(userMapper.toFriendResponse(friendUser)).thenReturn(friendResponse);
+      when(conversationService.getDirectConversationIds(List.of(friendUser.getId())))
+          .thenReturn(Map.of(friendUser.getId(), "conv-2"));
 
       ApiResponsePaginationDTO<FriendResponse> response = friendService.getFriendsList(page, size);
 
@@ -83,6 +89,7 @@ class FriendServiceImplTest {
       assertEquals(1, response.getData().size());
       assertEquals(0, response.getCurrentPage());
       assertEquals(1, response.getTotalPages());
+      assertEquals("conv-2", response.getData().getFirst().getConversationId());
 
       verify(userRepository, times(1)).getFriendsByUserId(currentUserId, pageable);
       verify(userMapper, times(1)).toFriendResponse(friendUser);
@@ -102,6 +109,7 @@ class FriendServiceImplTest {
       authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
 
       when(userRepository.getFriendsByUserId(currentUserId, pageable)).thenReturn(friendPage);
+      when(conversationService.getDirectConversationIds(List.of())).thenReturn(Map.of());
 
       ApiResponsePaginationDTO<FriendResponse> response = friendService.getFriendsList(page, size);
 

@@ -1,0 +1,3 @@
+feign:
+  chat-service:
+    url: ${CHAT_SERVICE_URL:http://localhost:8083}

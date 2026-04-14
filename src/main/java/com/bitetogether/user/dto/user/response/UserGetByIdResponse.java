@@ -14,6 +14,7 @@ public class UserGetByIdResponse {
   private String fullName;
   private String phoneNumber;
   private String avatar;
+  private String conversationId;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
   private UserGetByIdItem friendItem;

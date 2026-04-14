@@ -15,8 +15,10 @@ import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.UserRepository;
 import com.bitetogether.user.service.FriendService;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.util.UserHelper;
 import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -35,6 +37,7 @@ public class FriendServiceImpl implements FriendService {
   UserMapper userMapper;
   UserHelper userHelper;
   UserRepository userRepository;
+  ConversationService conversationService;
 
   @Override
   public ApiResponsePaginationDTO<FriendResponse> getFriendsList(int page, int size) {
@@ -44,6 +47,10 @@ public class FriendServiceImpl implements FriendService {
     Page<User> friendPage = userRepository.getFriendsByUserId(currentUserId, pageable);
 
     List<FriendResponse> friends = friendPage.stream().map(userMapper::toFriendResponse).toList();
+    Map<Long, String> conversationIds =
+        conversationService.getDirectConversationIds(
+            friendPage.getContent().stream().map(User::getId).toList());
+    friends.forEach(friend -> friend.setConversationId(conversationIds.get(friend.getId())));
 
     return buildApiResponse(
         ApiResponseStatus.SUCCESS,
