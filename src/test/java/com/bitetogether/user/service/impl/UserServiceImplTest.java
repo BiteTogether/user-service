@@ -478,6 +478,37 @@ class UserServiceImplTest {
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertNotNull(response.getData());
+      assertEquals(null, response.getData().getConversationId());
+
+      verify(userRepository, times(1)).findByUsername("frienduser");
+    }
+  }
+
+  @Test
+  void searchUsersWithFilter_WhenSearchedUserIsFriend_ReturnsConversationId() {
+    Long currentUserId = 1L;
+    Long searchedUserId = 2L;
+    userSearchRequest.setKeyword("frienduser");
+    UserSearchResponse userSearchResponse = new UserSearchResponse();
+    userSearchResponse.setId(searchedUserId);
+    testUser.getFriends().add(friendUser);
+
+    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
+      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
+
+      when(userRepository.findByUsername("frienduser")).thenReturn(Optional.of(friendUser));
+      when(userHelper.findUserById(currentUserId)).thenReturn(testUser);
+      when(userMapper.toUserSearchResponse(friendUser)).thenReturn(userSearchResponse);
+      when(conversationService.getDirectConversationId(searchedUserId)).thenReturn("conv-2");
+
+      ApiResponseDTO<UserSearchResponse> response =
+          userService.searchUsersWithFilter(userSearchRequest);
+
+      assertNotNull(response);
+      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      assertNotNull(response.getData());
+      assertTrue(response.getData().getIsFriend());
+      assertEquals("conv-2", response.getData().getConversationId());
 
       verify(userRepository, times(1)).findByUsername("frienduser");
     }
