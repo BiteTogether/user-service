@@ -12,6 +12,7 @@ public class UserSearchResponse {
   String username;
   String fullName;
   String avatar;
+  String conversationId;
 
   // Friend status fields
   private Boolean hasFriendRequestSent;

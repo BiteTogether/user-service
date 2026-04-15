@@ -312,10 +312,12 @@ public class UserServiceImpl implements UserService {
   private void enrichSearchResultWithFriendStatus(UserSearchResponse response, User searchedUser) {
     Long currentUserId = getCurrentUserId();
     User currentUser = userHelper.findUserById(currentUserId);
+    response.setConversationId(null);
 
     // Check if they are already friends
     if (currentUser.getFriends().contains(searchedUser)) {
       response.setIsFriend(true);
+      response.setConversationId(conversationService.getDirectConversationId(searchedUser.getId()));
       return;
     }
 
