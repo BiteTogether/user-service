@@ -14,8 +14,6 @@ import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.request.RegisterRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
-import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
-import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.RefreshToken;
 import com.bitetogether.user.model.User;
@@ -259,45 +257,5 @@ public class AuthServiceImpl implements AuthService {
         .expiresIn(jwtProperties.getExpiration())
         .sessionState(java.util.UUID.randomUUID().toString())
         .build();
-  }
-
-  @Override
-  public ApiResponseDTO<Void> saveDeviceToken(SaveDeviceTokenRequest requestDto) {
-    Long currentUserId = getCurrentUserId();
-
-    String accessToken = getAccessTokenFromHeader();
-    String refreshJti = jwtService.extractRefreshJti(accessToken);
-
-    RefreshToken refreshToken = validateRefreshToken(refreshJti, currentUserId);
-    String deviceToken = requestDto.getDeviceToken();
-
-    refreshToken.setDeviceToken(deviceToken);
-    refreshTokenRepository.save(refreshToken);
-
-    return buildApiResponse(
-        ApiResponseStatus.SUCCESS, "User's device information has been updated successfully", null);
-  }
-
-  @Override
-  public ApiResponseDTO<SaveDeviceTokenResponse> getDeviceToken() {
-    Long currentUserId = getCurrentUserId();
-
-    String accessToken = getAccessTokenFromHeader();
-    String refreshJti = jwtService.extractRefreshJti(accessToken);
-
-    RefreshToken refreshToken = validateRefreshToken(refreshJti, currentUserId);
-    String deviceToken = refreshToken.getDeviceToken();
-
-    if (deviceToken == null || deviceToken.isEmpty()) {
-      throw new AppException(ErrorCode.DEVICE_TOKEN_NOT_FOUND);
-    }
-
-    SaveDeviceTokenResponse responseDto = new SaveDeviceTokenResponse();
-    responseDto.setDeviceToken(deviceToken);
-
-    return buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        "User's device information has been fetched successfully",
-        responseDto);
   }
 }

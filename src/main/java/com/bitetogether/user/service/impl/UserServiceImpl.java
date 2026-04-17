@@ -16,8 +16,6 @@ import com.bitetogether.user.dto.event.UserUpdatedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdatePhoneRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
-import com.bitetogether.user.dto.user.request.UpdateUserState;
-import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.request.ValidateUserCriteriaRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
@@ -25,22 +23,18 @@ import com.bitetogether.user.dto.user.response.UpdatePhoneResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdItem;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
-import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
-import com.bitetogether.user.dto.user.response.UserStateResponse;
 import com.bitetogether.user.dto.user.response.ValidateUserCriteriaResponse;
 import com.bitetogether.user.enums.FriendRequestType;
-import com.bitetogether.user.enums.UserState;
 import com.bitetogether.user.exception.ErrorCode;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
+import com.bitetogether.user.service.ConversationService;
 import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.service.FirebaseAuthService;
-import com.bitetogether.user.service.ConversationService;
-import com.bitetogether.user.service.UserCacheService;
 import com.bitetogether.user.service.UserService;
 import com.bitetogether.user.util.UserHelper;
 import com.google.firebase.auth.FirebaseToken;
@@ -71,7 +65,6 @@ public class UserServiceImpl implements UserService {
   EventPublisherService eventPublisherService;
   FirebaseStorageServiceImpl firebaseStorageService;
   FirebaseAuthService firebaseAuthService;
-  UserCacheService userCacheService;
   ConversationService conversationService;
 
   // Validation constants
@@ -252,12 +245,7 @@ public class UserServiceImpl implements UserService {
 
   private void setFriendStatusFields(UserGetByIdItem response, User user) {
     response.setIsFriend(true);
-    response.setIsUserOnline(isUserOnline(user));
     response.setLastSeenUser(user.getLastSeen());
-  }
-
-  private boolean isUserOnline(User user) {
-    return user.getState() != UserState.OFFLINE;
   }
 
   private void setSentFriendRequestFields(UserGetByIdItem response, User currentUser, User user) {
@@ -347,38 +335,6 @@ public class UserServiceImpl implements UserService {
   private User searchUser(String keyword) {
     // Search by username only (not by phone or email for privacy)
     return userRepository.findByUsername(keyword).orElse(null);
-  }
-
-  @Override
-  public ApiResponseDTO<UserNotificationResponse> getNotificationSettings(Long id) {
-    validateUserAuthorization(id);
-
-    User user = userHelper.findUserById(id);
-
-    UserNotificationResponse settingsRequest = userMapper.toUserNotificationResponse(user);
-
-    return buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        "User notification settings fetched successfully",
-        settingsRequest);
-  }
-
-  @Override
-  public ApiResponseDTO<Void> updateNotificationSettings(
-      Long id, UserNotificationSettingsRequest userNotificationSettingsRequest) {
-    validateUserAuthorization(id);
-
-    User user = userHelper.findUserById(id);
-
-    user.setPushNotificationsEnabled(userNotificationSettingsRequest.getPushNotificationsEnabled());
-
-    userHelper.saveUser(user);
-
-    // Evict cache to ensure next read gets updated value
-    userCacheService.evictUserState(id);
-
-    return buildApiResponse(
-        ApiResponseStatus.SUCCESS, "User notification settings updated successfully", null);
   }
 
   private void validateUserAuthorization(Long id) {
@@ -671,66 +627,12 @@ public class UserServiceImpl implements UserService {
 
   private void publishUserDeletedEvent(User user, Long version) {
     UserDeletedEvent event =
-            UserDeletedEvent.builder()
-                    .userId(user.getId())
-                    .eventTimestamp(LocalDateTime.now())
-                    .version(version)
-                    .build();
-
-    eventPublisherService.publishUserDeletedEvent(event);
-  }
-
-  @Override
-  public ApiResponseDTO<Void> updateUserState(Long id, UpdateUserState updateUserState) {
-    validateUserAuthorization(id);
-
-    User user = userHelper.findUserById(id);
-    UserState newState = updateUserState.getState();
-
-    user.setState(newState);
-
-    // Only update lastSeen when user goes OFFLINE or BACKGROUND
-    if (newState == UserState.OFFLINE || newState == UserState.BACKGROUND) {
-      user.setLastSeen(LocalDateTime.now());
-    }
-
-    userHelper.saveUser(user);
-
-    userCacheService.cacheUserState(
-        id, user.getState(), user.getLastSeen(), user.isPushNotificationsEnabled());
-
-    return buildApiResponse(ApiResponseStatus.SUCCESS, "User has been updated successfully", null);
-  }
-
-  @Override
-  public ApiResponseDTO<UserStateResponse> getCurrentUserState() {
-    Long currentUserId = getCurrentUserId();
-
-    // Try to get from cache first
-    UserStateResponse cachedState = userCacheService.getCachedUserState(currentUserId).orElse(null);
-
-    if (cachedState != null) {
-      log.debug("Retrieved user state from cache for user ID: {}", currentUserId);
-      return buildApiResponse(
-          ApiResponseStatus.SUCCESS, "User state fetched successfully", cachedState);
-    }
-
-    // Cache miss - fallback to database
-    log.debug(
-        "User state not found in cache, fetching from database for user ID: {}", currentUserId);
-    User user = userHelper.findUserById(currentUserId);
-
-    UserStateResponse response =
-        UserStateResponse.builder()
-            .state(user.getState())
-            .lastSeen(user.getLastSeen())
-            .pushNotificationsEnabled(user.isPushNotificationsEnabled())
+        UserDeletedEvent.builder()
+            .userId(user.getId())
+            .eventTimestamp(LocalDateTime.now())
+            .version(version)
             .build();
 
-    // Cache the result for next time
-    userCacheService.cacheUserState(
-        currentUserId, user.getState(), user.getLastSeen(), user.isPushNotificationsEnabled());
-
-    return buildApiResponse(ApiResponseStatus.SUCCESS, "User state fetched successfully", response);
+    eventPublisherService.publishUserDeletedEvent(event);
   }
 }

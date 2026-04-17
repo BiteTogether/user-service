@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,8 +20,6 @@ import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.request.RegisterRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
-import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
-import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.model.RefreshToken;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.RefreshTokenRepository;
@@ -38,8 +35,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -70,7 +65,6 @@ class AuthServiceImplTest {
   private FirebaseTokenRequest firebaseTokenRequest;
   private RegisterRequest registerRequest;
   private RefreshTokenRequest refreshTokenRequest;
-  private SaveDeviceTokenRequest saveDeviceTokenRequest;
   private RefreshToken refreshToken;
 
   @BeforeEach
@@ -96,15 +90,11 @@ class AuthServiceImplTest {
     refreshTokenRequest = new RefreshTokenRequest();
     refreshTokenRequest.setRefreshToken("validRefreshToken");
 
-    saveDeviceTokenRequest = new SaveDeviceTokenRequest();
-    saveDeviceTokenRequest.setDeviceToken("device-token-123");
-
     refreshToken = new RefreshToken();
     refreshToken.setJti("refresh-jti-123");
     refreshToken.setUser(testUser);
     refreshToken.setIssuedAt(LocalDateTime.now());
     refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
-    refreshToken.setDeviceToken("");
   }
 
   @Test
@@ -324,158 +314,5 @@ class AuthServiceImplTest {
     verify(jwtService).extractUsername(refreshTokenRequest.getRefreshToken());
     verify(userRepository).findByUsername(username);
     verify(jwtService, never()).generateToken(any(), anyString());
-  }
-
-  @Test
-  void saveDeviceToken_WithValidRequest_UpdatesDeviceToken() {
-    Long currentUserId = 1L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "refresh-jti-123";
-    String deviceToken = "device-token-123";
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
-      when(refreshTokenRepository.save(refreshToken)).thenReturn(refreshToken);
-
-      ApiResponseDTO<Void> response = authService.saveDeviceToken(saveDeviceTokenRequest);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals(
-          "User's device information has been updated successfully", response.getMessage());
-      assertEquals(deviceToken, refreshToken.getDeviceToken());
-
-      verify(jwtService, times(1)).extractRefreshJti(accessToken);
-      verify(refreshTokenRepository, times(1)).findById(refreshJti);
-      verify(refreshTokenRepository, times(1)).save(refreshToken);
-    }
-  }
-
-  @Test
-  void saveDeviceToken_WithNonExistentRefreshToken_ThrowsNotFoundException() {
-    Long currentUserId = 1L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "non-existent-jti";
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.empty());
-
-      assertThrows(AppException.class, () -> authService.saveDeviceToken(saveDeviceTokenRequest));
-
-      verify(refreshTokenRepository, never()).save(any());
-    }
-  }
-
-  @Test
-  void saveDeviceToken_WithMismatchedUserId_ThrowsNotFoundException() {
-    Long currentUserId = 2L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "refresh-jti-123";
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
-
-      assertThrows(AppException.class, () -> authService.saveDeviceToken(saveDeviceTokenRequest));
-
-      verify(refreshTokenRepository, never()).save(any());
-    }
-  }
-
-  @Test
-  void getDeviceToken_WithValidToken_ReturnsDeviceToken() {
-    Long currentUserId = 1L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "refresh-jti-123";
-    String deviceToken = "device-token-123";
-
-    refreshToken.setDeviceToken(deviceToken);
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
-
-      ApiResponseDTO<SaveDeviceTokenResponse> response = authService.getDeviceToken();
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals(
-          "User's device information has been fetched successfully", response.getMessage());
-      assertNotNull(response.getData());
-      assertEquals(deviceToken, response.getData().getDeviceToken());
-
-      verify(jwtService, times(1)).extractRefreshJti(accessToken);
-      verify(refreshTokenRepository, times(1)).findById(refreshJti);
-    }
-  }
-
-  @ParameterizedTest
-  @NullAndEmptySource
-  void getDeviceToken_WithInvalidDeviceToken_ThrowsNotFoundException(String deviceToken) {
-    Long currentUserId = 1L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "refresh-jti-123";
-
-    refreshToken.setDeviceToken(deviceToken);
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
-
-      assertThrows(AppException.class, () -> authService.getDeviceToken());
-    }
-  }
-
-  @Test
-  void getDeviceToken_WithNonExistentRefreshToken_ThrowsNotFoundException() {
-    Long currentUserId = 1L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "non-existent-jti";
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.empty());
-
-      assertThrows(AppException.class, () -> authService.getDeviceToken());
-    }
-  }
-
-  @Test
-  void getDeviceToken_WithMismatchedUserId_ThrowsNotFoundException() {
-    Long currentUserId = 2L;
-    String accessToken = "valid-access-token";
-    String refreshJti = "refresh-jti-123";
-
-    refreshToken.setDeviceToken("device-token-123");
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-      authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
-      when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
-      when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
-
-      assertThrows(AppException.class, () -> authService.getDeviceToken());
-    }
   }
 }

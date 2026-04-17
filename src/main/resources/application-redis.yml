@@ -15,9 +15,3 @@ spring:
           max-idle: 8
           min-idle: 2
           max-wait: -1ms
-
-# User cache configuration
-app:
-  cache:
-    user:
-      ttl: ${USER_CACHE_TTL:1h}

@@ -9,8 +9,6 @@ import com.bitetogether.user.dto.auth.request.RefreshTokenRequest;
 import com.bitetogether.user.dto.auth.request.RegisterRequest;
 import com.bitetogether.user.dto.auth.response.RefreshTokenReponse;
 import com.bitetogether.user.dto.auth.response.TokenResponse;
-import com.bitetogether.user.dto.user.request.SaveDeviceTokenRequest;
-import com.bitetogether.user.dto.user.response.SaveDeviceTokenResponse;
 import com.bitetogether.user.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +16,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -75,24 +72,5 @@ public class AuthController {
   public ResponseEntity<ApiResponseDTO<RefreshTokenReponse>> refreshToken(
       @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
     return buildEntityResponse(authService.refreshToken(refreshTokenRequest));
-  }
-
-  @Operation(
-      summary = "Save device token",
-      description =
-          "Saves or updates the device token for push notifications (FCM/APNS) for the authenticated user")
-  @PostMapping("/tokens/device-token")
-  public ResponseEntity<ApiResponseDTO<Void>> saveDeviceToken(
-      @Valid @RequestBody SaveDeviceTokenRequest saveDeviceTokenRequest) {
-    return buildEntityResponse(authService.saveDeviceToken(saveDeviceTokenRequest));
-  }
-
-  @Operation(
-      summary = "Get device token",
-      description =
-          "Retrieves the currently saved device token for push notifications for the authenticated user")
-  @GetMapping("/tokens/device-token")
-  public ResponseEntity<ApiResponseDTO<SaveDeviceTokenResponse>> getDeviceToken() {
-    return buildEntityResponse(authService.getDeviceToken());
   }
 }
