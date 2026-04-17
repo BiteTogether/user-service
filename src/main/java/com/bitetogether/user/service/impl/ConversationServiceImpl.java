@@ -35,9 +35,7 @@ public class ConversationServiceImpl implements ConversationService {
       return payload == null ? null : payload.resolveConversationId();
     } catch (FeignException ex) {
       log.warn(
-          "Failed to fetch direct conversation for user {}. Status: {}",
-          otherUserId,
-          ex.status());
+          "Failed to fetch direct conversation for user {}. Status: {}", otherUserId, ex.status());
       return null;
     } catch (Exception ex) {
       log.warn("Failed to parse direct conversation response for user {}", otherUserId, ex);

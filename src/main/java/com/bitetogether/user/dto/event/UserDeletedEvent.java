@@ -19,4 +19,3 @@ public class UserDeletedEvent {
 
   private Long version; // Version at deletion time for ordering/idempotency
 }
-
