@@ -62,7 +62,7 @@ public class JwtServiceImpl implements JwtService {
     LocalDateTime issuedAt = LocalDateTime.now();
     LocalDateTime expiresAt = issuedAt.plusMinutes(jwtProperties.getRefreshExpiration());
 
-    refreshTokenRepository.save(new RefreshToken(refreshTokenJti, user, issuedAt, expiresAt, null));
+    refreshTokenRepository.save(new RefreshToken(refreshTokenJti, user, issuedAt, expiresAt));
 
     return createToken(claims, user.getUsername(), refreshTokenJti, issuedAt, expiresAt);
   }

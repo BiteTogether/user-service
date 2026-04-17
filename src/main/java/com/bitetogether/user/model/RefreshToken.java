@@ -30,6 +30,4 @@ public class RefreshToken {
 
   @Column(nullable = false)
   private LocalDateTime expiresAt;
-
-  @Column private String deviceToken = "";
 }

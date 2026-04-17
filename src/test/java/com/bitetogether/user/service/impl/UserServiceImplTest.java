@@ -3,13 +3,11 @@ package com.bitetogether.user.service.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -24,26 +22,19 @@ import com.bitetogether.user.convert.UserMapper;
 import com.bitetogether.user.dto.event.UserDeletedEvent;
 import com.bitetogether.user.dto.user.request.CreateUserRequest;
 import com.bitetogether.user.dto.user.request.UpdateUserRequest;
-import com.bitetogether.user.dto.user.request.UpdateUserState;
-import com.bitetogether.user.dto.user.request.UserNotificationSettingsRequest;
 import com.bitetogether.user.dto.user.request.UserSearchRequest;
 import com.bitetogether.user.dto.user.response.ListUserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserDetailsResponse;
 import com.bitetogether.user.dto.user.response.UserGetByIdResponse;
-import com.bitetogether.user.dto.user.response.UserNotificationResponse;
 import com.bitetogether.user.dto.user.response.UserResponse;
 import com.bitetogether.user.dto.user.response.UserSearchResponse;
-import com.bitetogether.user.dto.user.response.UserStateResponse;
 import com.bitetogether.user.enums.FriendRequestType;
-import com.bitetogether.user.enums.UserState;
 import com.bitetogether.user.model.User;
 import com.bitetogether.user.repository.FriendRequestRepository;
 import com.bitetogether.user.repository.RefreshTokenRepository;
 import com.bitetogether.user.repository.UserRepository;
-import com.bitetogether.user.service.EventPublisherService;
-import com.bitetogether.user.service.FirebaseAuthService;
 import com.bitetogether.user.service.ConversationService;
-import com.bitetogether.user.service.UserCacheService;
+import com.bitetogether.user.service.EventPublisherService;
 import com.bitetogether.user.util.AuthUtils;
 import com.bitetogether.user.util.UserHelper;
 import java.time.LocalDateTime;
@@ -80,12 +71,6 @@ class UserServiceImplTest {
 
   @Mock private EventPublisherService eventPublisherService;
 
-  @Mock private FirebaseStorageServiceImpl firebaseStorageService;
-
-  @Mock private FirebaseAuthService firebaseAuthService;
-
-  @Mock private UserCacheService userCacheService;
-
   @Mock private ConversationService conversationService;
 
   @InjectMocks private UserServiceImpl userService;
@@ -95,8 +80,6 @@ class UserServiceImplTest {
   private CreateUserRequest createUserRequest;
   private UpdateUserRequest updateUserRequest;
   private UserSearchRequest userSearchRequest;
-  private UserNotificationSettingsRequest notificationSettingsRequest;
-  private UpdateUserState updateUserState;
 
   @BeforeEach
   void setUp() {
@@ -109,8 +92,6 @@ class UserServiceImplTest {
             .phoneNumber("1234567890")
             .role(Role.USER.name())
             .friends(new HashSet<>())
-            .pushNotificationsEnabled(false)
-            .state(UserState.OFFLINE)
             .lastSeen(LocalDateTime.now())
             .build();
 
@@ -123,7 +104,6 @@ class UserServiceImplTest {
             .phoneNumber("0987654321")
             .role(Role.USER.name())
             .friends(new HashSet<>())
-            .state(UserState.FOREGROUND)
             .lastSeen(LocalDateTime.now())
             .build();
 
@@ -139,12 +119,6 @@ class UserServiceImplTest {
 
     userSearchRequest = new UserSearchRequest();
     userSearchRequest.setKeyword("testuser");
-
-    notificationSettingsRequest = new UserNotificationSettingsRequest();
-    notificationSettingsRequest.setPushNotificationsEnabled(true);
-
-    updateUserState = new UpdateUserState();
-    updateUserState.setState(UserState.OFFLINE);
   }
 
   @Test
@@ -369,7 +343,6 @@ class UserServiceImplTest {
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertNotNull(response.getData().getFriendItem());
       assertTrue(response.getData().getFriendItem().getIsFriend());
-      assertTrue(response.getData().getFriendItem().getIsUserOnline()); // FOREGROUND state
       assertEquals("conv-2", response.getData().getConversationId());
     }
   }
@@ -478,7 +451,7 @@ class UserServiceImplTest {
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertNotNull(response.getData());
-      assertEquals(null, response.getData().getConversationId());
+      assertNull(response.getData().getConversationId());
 
       verify(userRepository, times(1)).findByUsername("frienduser");
     }
@@ -530,187 +503,9 @@ class UserServiceImplTest {
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertEquals("No users found matching the keyword", response.getMessage());
-      assertEquals(null, response.getData());
+      assertNull(response.getData());
 
       verify(userRepository, times(1)).findByUsername("testuser");
-    }
-  }
-
-  @Test
-  void getNotificationSettings_WithValidUser_ReturnsSettings() {
-    Long userId = 1L;
-    UserNotificationResponse notificationResponse = new UserNotificationResponse();
-    notificationResponse.setPushNotificationsEnabled(false);
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
-      authUtilsMock.when(() -> AuthUtils.hasRole(Role.USER.name())).thenReturn(true);
-
-      when(userHelper.findUserById(userId)).thenReturn(testUser);
-      when(userMapper.toUserNotificationResponse(testUser)).thenReturn(notificationResponse);
-
-      ApiResponseDTO<UserNotificationResponse> response =
-          userService.getNotificationSettings(userId);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals("User notification settings fetched successfully", response.getMessage());
-      assertEquals(notificationResponse, response.getData());
-    }
-  }
-
-  @Test
-  void updateNotificationSettings_WithValidRequest_UpdatesSettings() {
-    Long userId = 1L;
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
-      authUtilsMock.when(() -> AuthUtils.hasRole(Role.USER.name())).thenReturn(true);
-
-      when(userHelper.findUserById(userId)).thenReturn(testUser);
-      when(userHelper.saveUser(testUser)).thenReturn(testUser);
-
-      ApiResponseDTO<Void> response =
-          userService.updateNotificationSettings(userId, notificationSettingsRequest);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals("User notification settings updated successfully", response.getMessage());
-
-      verify(userHelper, times(1)).saveUser(testUser);
-      verify(userCacheService, times(1)).evictUserState(userId);
-      assertTrue(testUser.isPushNotificationsEnabled());
-    }
-  }
-
-  @Test
-  void updateUserState_WithOfflineState_UpdatesLastSeen() {
-    Long userId = 1L;
-    updateUserState.setState(UserState.OFFLINE);
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
-      authUtilsMock.when(() -> AuthUtils.hasRole(Role.USER.name())).thenReturn(true);
-
-      when(userHelper.findUserById(userId)).thenReturn(testUser);
-      when(userHelper.saveUser(testUser)).thenReturn(testUser);
-
-      ApiResponseDTO<Void> response = userService.updateUserState(userId, updateUserState);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals("User has been updated successfully", response.getMessage());
-      assertEquals(UserState.OFFLINE, testUser.getState());
-
-      verify(userHelper, times(1)).findUserById(userId);
-      verify(userHelper, times(1)).saveUser(testUser);
-      verify(userCacheService, times(1))
-          .cacheUserState(
-              eq(userId), eq(UserState.OFFLINE), any(LocalDateTime.class), anyBoolean());
-    }
-  }
-
-  @Test
-  void updateUserState_WithBackgroundState_UpdatesLastSeen() {
-    Long userId = 1L;
-    updateUserState.setState(UserState.BACKGROUND);
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
-      authUtilsMock.when(() -> AuthUtils.hasRole(Role.USER.name())).thenReturn(true);
-
-      when(userHelper.findUserById(userId)).thenReturn(testUser);
-      when(userHelper.saveUser(testUser)).thenReturn(testUser);
-
-      ApiResponseDTO<Void> response = userService.updateUserState(userId, updateUserState);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals(UserState.BACKGROUND, testUser.getState());
-
-      verify(userCacheService, times(1))
-          .cacheUserState(
-              eq(userId), eq(UserState.BACKGROUND), any(LocalDateTime.class), anyBoolean());
-    }
-  }
-
-  @Test
-  void updateUserState_WithForegroundState_DoesNotUpdateLastSeen() {
-    Long userId = 1L;
-    updateUserState.setState(UserState.FOREGROUND);
-    LocalDateTime originalLastSeen = testUser.getLastSeen();
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(userId);
-      authUtilsMock.when(() -> AuthUtils.hasRole(Role.USER.name())).thenReturn(true);
-
-      when(userHelper.findUserById(userId)).thenReturn(testUser);
-      when(userHelper.saveUser(testUser)).thenReturn(testUser);
-
-      ApiResponseDTO<Void> response = userService.updateUserState(userId, updateUserState);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals(UserState.FOREGROUND, testUser.getState());
-      assertEquals(originalLastSeen, testUser.getLastSeen()); // lastSeen should not change
-
-      verify(userCacheService, times(1))
-          .cacheUserState(eq(userId), eq(UserState.FOREGROUND), eq(originalLastSeen), anyBoolean());
-    }
-  }
-
-  @Test
-  void getCurrentUserState_WithCacheHit_ReturnsFromCache() {
-    Long currentUserId = 1L;
-    UserStateResponse cachedResponse =
-        UserStateResponse.builder()
-            .state(UserState.FOREGROUND)
-            .lastSeen(LocalDateTime.now())
-            .pushNotificationsEnabled(true)
-            .build();
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-
-      when(userCacheService.getCachedUserState(currentUserId))
-          .thenReturn(Optional.of(cachedResponse));
-
-      ApiResponseDTO<UserStateResponse> response = userService.getCurrentUserState();
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals("User state fetched successfully", response.getMessage());
-      assertEquals(cachedResponse, response.getData());
-
-      verify(userCacheService, times(1)).getCachedUserState(currentUserId);
-      verify(userHelper, never()).findUserById(anyLong());
-    }
-  }
-
-  @Test
-  void getCurrentUserState_WithCacheMiss_FallbacksToDatabase() {
-    Long currentUserId = 1L;
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
-
-      when(userCacheService.getCachedUserState(currentUserId)).thenReturn(Optional.empty());
-      when(userHelper.findUserById(currentUserId)).thenReturn(testUser);
-
-      ApiResponseDTO<UserStateResponse> response = userService.getCurrentUserState();
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-      assertEquals("User state fetched successfully", response.getMessage());
-      assertNotNull(response.getData());
-      assertEquals(UserState.OFFLINE, response.getData().getState());
-      assertFalse(response.getData().isPushNotificationsEnabled());
-
-      verify(userCacheService, times(1)).getCachedUserState(currentUserId);
-      verify(userHelper, times(1)).findUserById(currentUserId);
-      verify(userCacheService, times(1))
-          .cacheUserState(
-              eq(currentUserId), eq(UserState.OFFLINE), any(LocalDateTime.class), eq(false));
     }
   }
 
@@ -754,26 +549,6 @@ class UserServiceImplTest {
       assertThrows(AppException.class, () -> userService.getListUser(userIds));
 
       verify(userRepository, never()).findAllById(anyList());
-    }
-  }
-
-  @Test
-  void validateUserAuthorization_AsAdmin_SkipsValidation() {
-    Long userId = 1L;
-
-    try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
-      authUtilsMock.when(() -> AuthUtils.hasRole(Role.USER.name())).thenReturn(false);
-
-      when(userHelper.findUserById(userId)).thenReturn(testUser);
-
-      UserNotificationResponse notificationResponse = new UserNotificationResponse();
-      when(userMapper.toUserNotificationResponse(testUser)).thenReturn(notificationResponse);
-
-      ApiResponseDTO<UserNotificationResponse> response =
-          userService.getNotificationSettings(userId);
-
-      assertNotNull(response);
-      assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     }
   }
 }
