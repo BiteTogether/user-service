@@ -40,10 +40,10 @@ public class FirebaseConfig {
   @Bean
   public FirebaseApp initializeFirebase() throws IOException {
     if (FirebaseApp.getApps().isEmpty()) {
-      try (InputStream inputStream = getCredentialsInputStream()) {
+      try (InputStream serviceAccount = getCredentialsInputStream()) {
         FirebaseOptions options =
             FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(inputStream))
+                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                 .setStorageBucket(firebaseProperties.getStorageBucket())
                 .build();
 
@@ -57,8 +57,8 @@ public class FirebaseConfig {
 
   @Bean
   public Storage storage() throws IOException {
-    try (InputStream inputStream = getCredentialsInputStream()) {
-      GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
+    try (InputStream serviceAccount = getCredentialsInputStream()) {
+      GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
       return StorageOptions.newBuilder().setCredentials(credentials).build().getService();
     }
   }
