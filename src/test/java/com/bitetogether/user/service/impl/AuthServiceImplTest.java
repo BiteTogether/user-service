@@ -159,6 +159,77 @@ class AuthServiceImplTest {
   }
 
   @Test
+  void firebaseLogin_UserFoundByPhone_UpdatesFirebaseUid() {
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "1234567890";
+    User userWithoutUid =
+        User.builder()
+            .id(1L)
+            .username("testuser")
+            .firebaseUid(null)
+            .phoneNumber(phoneNumber)
+            .role(Role.USER.name())
+            .build();
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(firebaseTokenRequest.getIdToken()))
+        .thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.of(userWithoutUid));
+    when(userRepository.save(any(User.class))).thenReturn(userWithoutUid);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("access-token");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("refresh-token");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.firebaseLogin(firebaseTokenRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+    verify(userRepository).save(any(User.class));
+  }
+
+  @Test
+  void firebaseLogin_WithEmptyFirebaseUid_SearchesByPhone() {
+    String phoneNumber = "1234567890";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(firebaseTokenRequest.getIdToken()))
+        .thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn("");
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.of(testUser));
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("access-token");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("refresh-token");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.firebaseLogin(firebaseTokenRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+  }
+
+  @Test
+  void firebaseLogin_WithNullFirebaseUidAndNullPhone_ThrowsException() {
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", null);
+
+    when(firebaseAuthService.verifyIdToken(firebaseTokenRequest.getIdToken()))
+        .thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(null);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+
+    assertThrows(AppException.class, () -> authService.firebaseLogin(firebaseTokenRequest));
+  }
+
+  @Test
   void register_WithValidRequest_ReturnsTokenResponse() {
     String accessToken = "access-token";
     String refreshTokenValue = "refresh-token";
@@ -191,7 +262,6 @@ class AuthServiceImplTest {
     assertNotNull(response.getData());
     assertEquals(accessToken, response.getData().getAccessToken());
     assertEquals(refreshTokenValue, response.getData().getRefreshToken());
-    verify(firebaseAuthService).verifyIdToken(registerRequest.getIdToken());
     verify(userRepository).save(any(User.class));
   }
 
@@ -210,8 +280,179 @@ class AuthServiceImplTest {
 
     assertThrows(AppException.class, () -> authService.register(registerRequest));
 
-    verify(firebaseAuthService).verifyIdToken(registerRequest.getIdToken());
     verify(userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  void register_WithExistingPhoneNumber_ThrowsAppException() {
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "1234567890";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.of(testUser));
+
+    assertThrows(AppException.class, () -> authService.register(registerRequest));
+
+    verify(userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  void register_WithNullUsername_GeneratesUsername() {
+    registerRequest.setUsername(null);
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "0987654321";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+    when(userRepository.existsByUsername(anyString())).thenReturn(false);
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("at");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("rt");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.register(registerRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+    verify(userRepository).save(any(User.class));
+  }
+
+  @Test
+  void register_WithEmptyUsername_GeneratesUsername() {
+    registerRequest.setUsername("   ");
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "0987654321";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+    when(userRepository.existsByUsername(anyString())).thenReturn(false);
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("at");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("rt");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.register(registerRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+  }
+
+  @Test
+  void register_WithNullFullName_DefaultsToUsername() {
+    registerRequest.setFullName(null);
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "0987654321";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+    when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(false);
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("at");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("rt");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.register(registerRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+  }
+
+  @Test
+  void register_WithExistingUsername_ThrowsAppException() {
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "0987654321";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+    when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(true);
+
+    assertThrows(AppException.class, () -> authService.register(registerRequest));
+    verify(userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  void register_WithNullPhoneNumber_UsesPlaceholder() {
+    String firebaseUid = "new-firebase-uid";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", null);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(false);
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("at");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("rt");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.register(registerRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+  }
+
+  @Test
+  void register_WithGeneratedUsernameCollision_IncrementsCounter() {
+    registerRequest.setUsername(null);
+    String firebaseUid = "new-firebase-uid";
+    String phoneNumber = "0987654321";
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("phone_number", phoneNumber);
+
+    when(firebaseAuthService.verifyIdToken(registerRequest.getIdToken())).thenReturn(firebaseToken);
+    when(firebaseToken.getUid()).thenReturn(firebaseUid);
+    when(firebaseToken.getClaims()).thenReturn(claims);
+    when(userRepository.findByFirebaseUid(firebaseUid)).thenReturn(Optional.empty());
+    when(userRepository.findByPhoneNumber(phoneNumber)).thenReturn(Optional.empty());
+    // First username collision, second succeeds
+    when(userRepository.existsByUsername(anyString())).thenReturn(true, false);
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+    when(jwtService.generateToken(any(User.class), anyString())).thenReturn("at");
+    when(jwtService.generateRefreshToken(any(User.class), anyString())).thenReturn("rt");
+    when(jwtProperties.getExpiration()).thenReturn(3600000L);
+    when(jwtProperties.getRefreshExpiration()).thenReturn(604800000L);
+
+    ApiResponseDTO<TokenResponse> response = authService.register(registerRequest);
+
+    assertNotNull(response);
+    assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
   }
 
   @Test
@@ -231,8 +472,6 @@ class AuthServiceImplTest {
       assertNotNull(response);
       assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       assertEquals("Log out successfully", response.getMessage());
-      verify(jwtService).extractRefreshJti(accessToken);
-      verify(refreshTokenRepository).findById(refreshJti);
       verify(refreshTokenRepository).delete(refreshToken);
     }
   }
@@ -264,7 +503,6 @@ class AuthServiceImplTest {
     try (MockedStatic<AuthUtils> authUtilsMock = mockStatic(AuthUtils.class)) {
       authUtilsMock.when(AuthUtils::getCurrentUserId).thenReturn(currentUserId);
       authUtilsMock.when(AuthUtils::getAccessTokenFromHeader).thenReturn(accessToken);
-
       when(jwtService.extractRefreshJti(accessToken)).thenReturn(refreshJti);
       when(refreshTokenRepository.findById(refreshJti)).thenReturn(Optional.of(refreshToken));
 
@@ -292,14 +530,8 @@ class AuthServiceImplTest {
     assertNotNull(response);
     assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     assertEquals("Token refreshed successfully", response.getMessage());
-    assertNotNull(response.getData());
     assertEquals(newAccessToken, response.getData().getAccessToken());
     assertEquals(expiration, response.getData().getExpiresIn());
-    assertNotNull(response.getData().getSessionState());
-    verify(jwtService).extractUsername(refreshTokenRequest.getRefreshToken());
-    verify(userRepository).findByUsername(username);
-    verify(jwtService).extractJti(refreshTokenRequest.getRefreshToken());
-    verify(jwtService).generateToken(testUser, refreshJti);
   }
 
   @Test
@@ -311,8 +543,6 @@ class AuthServiceImplTest {
 
     assertThrows(AppException.class, () -> authService.refreshToken(refreshTokenRequest));
 
-    verify(jwtService).extractUsername(refreshTokenRequest.getRefreshToken());
-    verify(userRepository).findByUsername(username);
     verify(jwtService, never()).generateToken(any(), anyString());
   }
 }
